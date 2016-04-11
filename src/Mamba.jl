@@ -229,6 +229,8 @@ module Mamba
   include("samplers/slice.jl")
   include("samplers/slicesimplex.jl")
 
+  include("maxpost/maxpost.jl")
+
 
   #################### Exports ####################
 
