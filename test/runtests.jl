@@ -8,6 +8,7 @@ const samplertests = [
   "amm",
   "amwg",
   "bhmc",
+  "bia",
   "bmc3",
   "bmg",
   "hmc",

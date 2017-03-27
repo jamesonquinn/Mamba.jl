@@ -37,11 +37,11 @@ module Mamba
          minimum, pdf, quantile, rand, sample!, support
   import Gadfly: draw, Geom, Guide, Layer, layer, PDF, PGF, Plot, plot, PNG, PS,
          render, Scale, SVG, Theme
-  import Graphs: AbstractGraph, add_edge!, add_vertex!, Edge, KeyVertex, graph,
-         out_edges, out_neighbors, target, topological_sort_by_dfs, vertices
+  import LightGraphs: DiGraph, add_edge!, out_neighbors,
+         topological_sort_by_dfs, vertices
   import Showoff: showoff
   import StatsBase: autocor, autocov, countmap, counts, describe, predict,
-         quantile, sem, summarystats
+         quantile, sample, sem, summarystats
 
   include("distributions/pdmats2.jl")
   importall .PDMats2
@@ -144,6 +144,11 @@ module Mamba
 
   #################### Model Types ####################
 
+  type ModelGraph
+    graph::DiGraph
+    keys::Vector{Symbol}
+  end
+
   type ModelState
     value::Vector{Float64}
     tune::Vector{Any}
@@ -218,6 +223,7 @@ module Mamba
   include("samplers/amm.jl")
   include("samplers/amwg.jl")
   include("samplers/bhmc.jl")
+  include("samplers/bia.jl")
   include("samplers/bmc3.jl")
   include("samplers/bmg.jl")
   include("samplers/dgs.jl")
@@ -314,6 +320,7 @@ module Mamba
     DiscreteVariate,
     DGS, DGSVariate,
     HMC, HMCVariate,
+    BIA, BIAVariate,
     MALA, MALAVariate,
     MISS,
     NUTS, NUTSVariate,

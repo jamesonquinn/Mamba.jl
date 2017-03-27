@@ -18,17 +18,12 @@ logf = function(gamma::DenseVector)
   logpdf(MvNormal(X * (beta0 .* gamma), 1.0), y)
 end
 
-## MCMC Simulation with Binary Metropolised Gibbs
+## MCMC Simulation with Binary Individual Adaptation Sampler
 t = 10000
-sim1 = Chains(t, p, names = map(i -> "gamma[$i]", 1:p))
-sim2 = Chains(t, p, names = map(i -> "gamma[$i]", 1:p))
-gamma1 = BMGVariate(zeros(p), logf)
-gamma2 = BMGVariate(zeros(p), logf, k=Vector{Int}[[i] for i in 1:p])
+sim = Chains(t, p, names = map(i -> "gamma[$i]", 1:p))
+gamma = BIAVariate(zeros(p), logf)
 for i in 1:t
-  sample!(gamma1)
-  sample!(gamma2)
-  sim1[i, :, 1] = gamma1
-  sim2[i, :, 1] = gamma2
+  sample!(gamma)
+  sim[i, :, 1] = gamma
 end
-describe(sim1)
-describe(sim2)
+describe(sim)

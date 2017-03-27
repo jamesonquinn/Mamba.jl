@@ -1,6 +1,6 @@
 #################### Sampler ####################
 
-const samplerfxargs = [(:model, :Model), (:block, :Integer)]
+const samplerfxargs = [(:model, Mamba.Model), (:block, Integer)]
 
 
 #################### Types and Constructors ####################
@@ -54,7 +54,7 @@ function Base.show(io::IO, s::Sampler)
   print(io, "Sampling Block Nodes:\n")
   show(io, s.params)
   print(io, "\n\n")
-  show(io, s.eval.code)
+  show(io, "text/plain", first(code_typed(s.eval)))
   println(io)
 end
 
@@ -123,10 +123,3 @@ end
 
 asvec(x::Union{Number, Symbol}) = [x]
 asvec(x::Vector) = x
-
-
-#################### Legacy Sampler Code ####################
-
-function SamplerVariate(m::Model, block::Integer, transform::Bool=false)
-  SamplerVariate(unlist(m, block, transform), m.samplers[block], m.iter)
-end

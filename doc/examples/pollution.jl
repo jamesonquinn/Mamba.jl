@@ -102,7 +102,7 @@ Gibbs_alphabeta = Sampler([:alpha, :beta],
       alphabeta_mean = map(mean, alphabeta_distr)
       alphabeta_invcov = spdiagm(map(d -> 1 / var(d), alphabeta_distr))
       M = [ones(y)  X * spdiagm(gamma)]
-      Sigma = inv(M' * M / sigma2 + alphabeta_invcov)
+      Sigma = inv(Symmetric(M' * M / sigma2 + alphabeta_invcov))
       mu = Sigma * (M' * y / sigma2 + alphabeta_invcov * alphabeta_mean)
       alphabeta_rand = rand(MvNormal(mu, Sigma))
       Dict(:alpha => alphabeta_rand[1], :beta => alphabeta_rand[2:end])
@@ -164,3 +164,9 @@ scheme4 = [DGS(:gamma); scheme0]
 setsamplers!(model, scheme4)
 sim4 = mcmc(model, pollution, inits, 10000, burnin=1000, thin=2, chains=3)
 describe(sim4)
+
+## Individual Adaptation Sampling
+scheme5 = [BIA(:gamma); scheme0]
+setsamplers!(model, scheme5)
+sim5 = mcmc(model, pollution, inits, 10000, burnin=1000, thin=2, chains=3)
+describe(sim5)

@@ -12,6 +12,7 @@ Listed below are the sampling methods for which functions are provided to simula
     samplers/amm.rst
     samplers/amwg.rst
     samplers/bhmc.rst
+    samplers/bia.rst
     samplers/bmc3.rst
     samplers/bmg.rst
     samplers/dgs.rst
@@ -39,6 +40,8 @@ The following table summarizes the (*d*-dimensional) sample spaces over which ea
     | :ref:`AMWG <section-AMWG>`                 | :math:`\mathbb{R}^d`                  | Yes        | No           | Yes             | Yes        | No           |
     +--------------------------------------------+---------------------------------------+------------+--------------+-----------------+------------+--------------+
     | :ref:`BHMC <section-BHMC>`                 | :math:`\{0, 1\}^d`                    | No         | Yes          | No              | No         | Yes          |
+    +--------------------------------------------+---------------------------------------+------------+--------------+-----------------+------------+--------------+
+    | :ref:`BIA <section-BIA>`                   | :math:`\{0, 1\}^d`                    | No         | Yes          | No              | No         | Yes          |
     +--------------------------------------------+---------------------------------------+------------+--------------+-----------------+------------+--------------+
     | :ref:`BMC3 <section-BMC3>`                 | :math:`\{0, 1\}^d`                    | Yes        | Yes          | No              | Yes        | Yes          |
     +--------------------------------------------+---------------------------------------+------------+--------------+-----------------+------------+--------------+

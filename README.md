@@ -1,9 +1,12 @@
 # Mamba: Markov chain Monte Carlo (MCMC) for Bayesian analysis in julia
 
-**julia 0.4:** [![Docs](https://readthedocs.org/projects/mambajl/badge/?version=release-0.9)](http://mambajl.readthedocs.org/en/release-0.9/)
+**julia 0.5:** [![Docs](https://readthedocs.org/projects/mambajl/badge/?version=release-0.10)](http://mambajl.readthedocs.io/en/release-0.10/)
+[![Mamba](http://pkg.julialang.org/badges/Mamba_0.5.svg)](http://pkg.julialang.org/?pkg=Mamba&ver=0.5)
+[![Build Status](https://travis-ci.org/brian-j-smith/Mamba.jl.svg?branch=release-0.10)](https://travis-ci.org/brian-j-smith/Mamba.jl)  
+**julia 0.4:** [![Docs](https://readthedocs.org/projects/mambajl/badge/?version=release-0.9)](http://mambajl.readthedocs.io/en/release-0.9/)
 [![Mamba](http://pkg.julialang.org/badges/Mamba_0.4.svg)](http://pkg.julialang.org/?pkg=Mamba&ver=0.4)
 [![Build Status](https://travis-ci.org/brian-j-smith/Mamba.jl.svg?branch=release-0.9)](https://travis-ci.org/brian-j-smith/Mamba.jl)  
-**julia 0.3:** [![Docs](https://readthedocs.org/projects/mambajl/badge/?version=release-0.4)](http://mambajl.readthedocs.org/en/release-0.4/)
+**julia 0.3:** [![Docs](https://readthedocs.org/projects/mambajl/badge/?version=release-0.4)](http://mambajl.readthedocs.io/en/release-0.4/)
 [![Mamba](http://pkg.julialang.org/badges/Mamba_0.3.svg)](http://pkg.julialang.org/?pkg=Mamba&ver=0.3)
 [![Build Status](https://travis-ci.org/brian-j-smith/Mamba.jl.svg?branch=release-0.4)](https://travis-ci.org/brian-j-smith/Mamba.jl)
 
@@ -46,4 +49,4 @@ The following **julia** command will install the package:
 julia> Pkg.add("Mamba")
 ```
 
-See the [Package Documentation](http://mambajl.readthedocs.org) for details and examples.
+See the [Package Documentation](http://mambajl.readthedocs.io) for details and examples.
