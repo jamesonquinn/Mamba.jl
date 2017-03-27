@@ -1,4 +1,6 @@
 using Mamba
+using Optim
+
 
 ## Data
 dogs = Dict{Symbol, Any}(
@@ -76,6 +78,7 @@ model = Model(
 )
 
 
+
 ## Initial Values
 inits = [
   Dict(:y => dogs[:y], :alpha => -1, :beta => -1),
@@ -87,7 +90,49 @@ inits = [
 scheme = [Slice([:alpha, :beta], 1.0)]
 setsamplers!(model, scheme)
 
+" A factory which makes a function which takes values from a vector and
+    puts them into a structure of the same shape as fillable"
+function makeFiller(fillable, whichParts)
+  partFillers = Function[]
+  print(typeof(partFillers))
+  i = 1
+  for part in whichParts
+    function enclose(myI, myPart)
+      function partFill!(target,v)
+        target[myPart] = v[myI]
+      end
+      return(partFill!)
+    end
+    push!(partFillers,enclose(i,part))
+    i += 1
+  end
+  function fill!(target, v)
+    for partFiller in partFillers
+      partFiller(target,v)
+    end
+  end
+  return fill!
+end
 
+f! = makeFiller(inits[1],[:alpha, :beta])
+inits[1]
+f!(inits[1],[1,2])
+
+"Takes a model, an init value, and a list of parameters to optimize over, and optimizes
+
+    notes:
+      m should already have inputs"
+function optimOver(m::Model, init, params::paramNames::Vector{Symbol})
+  current = copy(init)
+  fill! = makeFiller(init, params)
+  setinits!(m, current)
+  function logpdfFor(v)
+  ## This currently has side-effects. That's bad style but I'll fix it later
+    fill!(current,v)
+    return logpdf(m)
+  end
+end
 ## MCMC Simulations
+mcmc_master!(mm, 1:iters, burnin, thin, 1:chains, verbose)
 sim = mcmc(model, dogs, inits, 10000, burnin=2500, thin=2, chains=2)
 describe(sim)
