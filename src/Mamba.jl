@@ -46,30 +46,38 @@ module Mamba
   include("distributions/pdmats2.jl")
   importall .PDMats2
 
-
   #################### Types ####################
 
-  typealias ElementOrVector{T} Union{T, Vector{T}}
+  ElementOrVector{T} = Union{T, Vector{T}}
 
 
   #################### Variate Types ####################
 
-  abstract ScalarVariate <: Real
-  abstract ArrayVariate{N} <: DenseArray{Float64, N}
+  abstract type ScalarVariate <: Real end
+  abstract type ArrayVariate{N} <: DenseArray{Float64, N} end
 
-  typealias AbstractVariate Union{ScalarVariate, ArrayVariate}
-  typealias VectorVariate ArrayVariate{1}
-  typealias MatrixVariate ArrayVariate{2}
+  AbstractVariate = Union{ScalarVariate, ArrayVariate}
+  VectorVariate = ArrayVariate{1}
+  MatrixVariate = ArrayVariate{2}
 
 
   #################### Distribution Types ####################
 
-  typealias DistributionStruct Union{Distribution,
+  DistributionStruct = Union{Distribution,
                                      Array{UnivariateDistribution},
                                      Array{MultivariateDistribution}}
 
 
   #################### Dependent Types ####################
+abstract type ObservedValue end
+
+type OneObservedValue <: ObservedValue
+    value::Real
+end
+
+type ObservedValues{T<:Real,N} <: ObservedValue
+    value::AbstractArray{T,N} #How do we ensure that the element type <: Real without indexing the type?
+end
 
   type ScalarLogical <: ScalarVariate
     value::Float64
@@ -100,7 +108,7 @@ module Mamba
   end
 
   type ArrayStochastic{N} <: ArrayVariate{N}
-    value::Array{Float64, N}
+    value::ObservedValues
     symbol::Symbol
     monitor::Vector{Int}
     eval::Function
@@ -109,9 +117,9 @@ module Mamba
     distr::DistributionStruct
   end
 
-  typealias AbstractLogical Union{ScalarLogical, ArrayLogical}
-  typealias AbstractStochastic Union{ScalarStochastic, ArrayStochastic}
-  typealias AbstractDependent Union{AbstractLogical, AbstractStochastic}
+  AbstractLogical = Union{ScalarLogical, ArrayLogical}
+  AbstractStochastic = Union{ScalarStochastic, ArrayStochastic}
+  AbstractDependent = Union{AbstractLogical, AbstractStochastic}
 
 
   #################### Sampler Types ####################
@@ -124,7 +132,7 @@ module Mamba
   end
 
 
-  abstract SamplerTune
+  abstract type SamplerTune end
 
   type SamplerVariate{T<:SamplerTune} <: VectorVariate
     value::Vector{Float64}
@@ -167,7 +175,7 @@ module Mamba
 
   #################### Chains Type ####################
 
-  abstract AbstractChains
+  abstract type AbstractChains end
 
   immutable Chains <: AbstractChains
     value::Array{Float64, 3}

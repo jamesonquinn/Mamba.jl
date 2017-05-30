@@ -99,9 +99,9 @@ model = Model(
 
 ## Initial Values
 inits = [
-  Dict(:y => rats[:y], :alpha => fill(250, 30), :beta => fill(6, 30),
-       :mu_alpha => 150, :mu_beta => 10, :s2_c => 1, :s2_alpha => 1,
-       :s2_beta => 1),
+  Dict(:y => rats[:y], :alpha => fill(250., 30), :beta => fill(6., 30),
+       :mu_alpha => 150., :mu_beta => 10., :s2_c => 1., :s2_alpha => 1.,
+       :s2_beta => 1.),
   Dict(:y => rats[:y], :alpha => fill(20, 30), :beta => fill(0.6, 30),
        :mu_alpha => 15, :mu_beta => 1, :s2_c => 10, :s2_alpha => 10,
        :s2_beta => 10)
@@ -118,5 +118,49 @@ setsamplers!(model, scheme)
 
 
 ## MCMC Simulations
-sim = mcmc(model, rats, inits, 10000, burnin=2500, thin=2, chains=2)
+sim = mcmc(model, rats, inits, 10, burnin=2, thin=2, chains=2)
+
+
+function logpdfMaker!(m::Model, inputs::Dict{Symbol}, paramNames::Vector{Symbol}, sizes::Vector{Int})
+  setinputs!(m, inputs)
+  function logpdfer(paramVals)
+    params = Dict{Symbol,Any}()
+    cur = 1
+    for (name,size) in zip(paramNames,sizes)
+      if size>1
+          params[name] = paramVals[cur:cur+size-1]
+      else
+          params[name] = paramVals[cur]
+      cur += size
+    end
+    setinits!(m, params)
+    return logpdf(m)
+  end
+  return logpdfer
+  mcmc_master!(mm, 1:iters, burnin, thin, 1:chains, verbose)
+end
+
+s1 = t -> (length(size(t)) < 1) ? 1 : size(t)[1]
+logpdfer = logpdfMaker!(model,rats,collect(keys(inits[1])),collect(map(s1,values(inits[1]))) )
+
+function tupflat(t)
+    sizes = collect(map(s1,t))
+    v = fill(0.,sum(sizes))
+    cur=1
+    for (e,s) in zip(t,sizes)
+        if s > 1
+            v[cur:cur+s-1] = e
+        else
+            v[cur] = e
+        end
+        cur += s
+    v
+end
+
+logpdfer(collect(values(inits[1])))
+
+using ForwardDiff
+
+ForwardDiff.gradient(logpdfer,collect(values(inits[1])))
+
 describe(sim)

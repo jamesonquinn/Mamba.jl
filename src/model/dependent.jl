@@ -1,4 +1,4 @@
-#################### Dependent ####################
+################################## Dependent ####################
 
 const depfxargs = [(:model, Mamba.Model)]
 
@@ -161,7 +161,7 @@ function setinits!(s::ScalarStochastic, m::Model, x::Real)
 end
 
 function setinits!(s::ArrayStochastic, m::Model, x::DenseArray)
-  s.value = convert(typeof(s.value), copy(x))
+  s.value = ObservedValues(x)
   s.distr = s.eval(m)
   if !isa(s.distr, UnivariateDistribution) && dims(s) != dims(s.distr)
     throw(DimensionMismatch("incompatible distribution for stochastic node"))
