@@ -1,3 +1,4 @@
+
 ################################## Dependent ####################
 
 const depfxargs = [(:model, Mamba.Model)]
@@ -22,7 +23,7 @@ function Base.showall(io::IO, d::AbstractDependent)
   show(io, d.targets)
 end
 
-dims(d::AbstractDependent) = size(d)
+dims(d::AbstractDependent) = size(d.value)
 
 function names(d::AbstractDependent)
   names(d, d.symbol)
@@ -53,6 +54,8 @@ end
 unlist(d::AbstractDependent, transform::Bool=false) =
   unlist(d, d.value, transform)
 
+
+
 unlist(d::AbstractDependent, x::Real, transform::Bool=false) = [x]
 
 unlist(d::AbstractDependent, x::AbstractArray, transform::Bool=false) = vec(x)
@@ -75,7 +78,7 @@ logpdf(d::AbstractDependent, x, transform::Bool=false) = 0.0
 function Logical(f::Function, monitor::Union{Bool, Vector{Int}}=true)
   value = Float64(NaN)
   fx, src = modelfxsrc(depfxargs, f)
-  l = ScalarLogical(value, :nothing, Int[], fx, src, Symbol[])
+  l = ScalarLogical(OneObservedValue(value), :nothing, Int[], fx, src, Symbol[])
   setmonitor!(l, monitor)
 end
 
@@ -83,20 +86,38 @@ function Logical(d::Integer, f::Function,
                  monitor::Union{Bool, Vector{Int}}=true)
   value = Array{Float64}(fill(0, d)...)
   fx, src = modelfxsrc(depfxargs, f)
-  l = ArrayLogical(value, :nothing, Int[], fx, src, Symbol[])
+  l = ArrayLogical(ObservedValues(value), :nothing, Int[], fx, src, Symbol[])
   setmonitor!(l, monitor)
 end
 
 
 #################### Updating ####################
+function deint(x::Real)
+    x
+end
+function deint(x::Integer)
+    Float64(x)
+end
+function deint{T<:Integer}(x::AbstractArray{T})
+    value = similar(x,Float64)
+    value = convert(typeof(value),x)
+    value
+end
+function deint{T<:Real}(x::AbstractArray{T})
+    x
+end
+
+ObservedValue(x) = deint(x)
 
 function setinits!(l::AbstractLogical, m::Model, ::Any=nothing)
-  l.value = l.eval(m)
+  l.value = ObservedValue(l.eval(m))
+  #size(value) == ()) ? OneObservedValue(value) : ObservedValues(value)
   setmonitor!(l, l.monitor)
 end
 
 function update!(l::AbstractLogical, m::Model)
-  l.value = l.eval(m)
+  l.value = ObservedValue(l.eval(m))
+  #l.value = (size(value) == ()) ? OneObservedValue(value) : ObservedValues(value)
   l
 end
 
@@ -137,7 +158,7 @@ end
 function Stochastic(f::Function, monitor::Union{Bool, Vector{Int}}=true)
   value = Float64(NaN)
   fx, src = modelfxsrc(depfxargs, f)
-  s = ScalarStochastic(value, :nothing, Int[], fx, src, Symbol[],
+  s = ScalarStochastic(OneObservedValue(value), :nothing, Int[], fx, src, Symbol[],
                        NullUnivariateDistribution())
   setmonitor!(s, monitor)
 end
@@ -146,25 +167,24 @@ function Stochastic(d::Integer, f::Function,
                     monitor::Union{Bool, Vector{Int}}=true)
   value = Array{Float64}(fill(0, d)...)
   fx, src = modelfxsrc(depfxargs, f)
-  s = ArrayStochastic(value, :nothing, Int[], fx, src, Symbol[],
+  s = ArrayStochastic(ObservedValues(value), :nothing, Int[], fx, src, Symbol[],
                       NullUnivariateDistribution())
   setmonitor!(s, monitor)
 end
 
 
 #################### Updating ####################
-
 function setinits!(s::ScalarStochastic, m::Model, x::Real)
-  s.value = convert(Float64, x)
+  s.value = OneObservedValue(x)
   s.distr = s.eval(m)
   setmonitor!(s, s.monitor)
 end
 
-function setinits!(s::ArrayStochastic, m::Model, x::DenseArray)
+function setinits!(s::ArrayStochastic, m::Model, x::AbstractArray)
   s.value = ObservedValues(x)
   s.distr = s.eval(m)
   if !isa(s.distr, UnivariateDistribution) && dims(s) != dims(s.distr)
-    throw(DimensionMismatch("incompatible distribution for stochastic node"))
+    throw(DimensionMismatch("incompatible distribution for stochastic node: "*string(dims(s))*", "*string(dims(s.distr))))
   end
   setmonitor!(s, s.monitor)
 end
@@ -190,6 +210,11 @@ function unlist(s::AbstractStochastic, x::Real, transform::Bool=false)
 end
 
 function unlist(s::AbstractStochastic, x::AbstractArray, transform::Bool=false)
+  transform ? unlist_sub(s.distr, link_sub(s.distr, x)) :
+              unlist_sub(s.distr, x)
+end
+
+function unlist(s::AbstractStochastic, x::ObservedValues, transform::Bool=false)
   transform ? unlist_sub(s.distr, link_sub(s.distr, x)) :
               unlist_sub(s.distr, x)
 end

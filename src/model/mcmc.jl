@@ -63,14 +63,19 @@ function mcmc_worker!(args::Vector)
   m, state, window, burnin, thin, meter = args
 
   m.iter = first(window) - 1
+  print("qq")
   relist!(m, state.value)
   settune!(m, state.tune)
 
+  print("qq2")
   pnames = names(m, true)
+  print("qq2"
   sim = Chains(last(window), length(pnames), start=burnin + thin, thin=thin,
                names=pnames)
 
+  print("qq2")
   reset!(meter)
+  print("qq3")
   for i in window
     sample!(m)
     if i > burnin && (i - burnin) % thin == 0

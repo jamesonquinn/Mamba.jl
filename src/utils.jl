@@ -14,7 +14,6 @@ end
 
 function modelexprsrc(f::Function, literalargs::Vector{Tuple{Symbol, DataType}})
   li = first(code_typed(f))
-  print(li)
   fkeys = Symbol[li.slotnames[i] for i in 2:li.nargs]
   ftypes = DataType[li.slottypes[i] for i in 2:li.nargs]
   n = length(fkeys)

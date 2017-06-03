@@ -2,9 +2,10 @@ using Distributions
 
 module Mamba
 
+
   #################### Imports ####################
 
-  import Base: cor, dot
+  import Base: cor, dot, size
   import Base.LinAlg: Cholesky
   import Calculus: gradient
   import Compose: Context, context, cm, gridstack, inch, MeasureOrNumber, mm,
@@ -46,41 +47,38 @@ module Mamba
   include("distributions/pdmats2.jl")
   importall .PDMats2
 
-  #################### Types ####################
 
-  ElementOrVector{T} = Union{T, Vector{T}}
+    #################### Types ####################
 
-
-  #################### Variate Types ####################
-
-  abstract type ScalarVariate <: Real end
-  abstract type ArrayVariate{N} <: DenseArray{Float64, N} end
-
-  AbstractVariate = Union{ScalarVariate, ArrayVariate}
-  VectorVariate = ArrayVariate{1}
-  MatrixVariate = ArrayVariate{2}
+    typealias ElementOrVector{T} Union{T, Vector{T}}
 
 
-  #################### Distribution Types ####################
+    #################### Variate Types ####################
 
-  DistributionStruct = Union{Distribution,
-                                     Array{UnivariateDistribution},
-                                     Array{MultivariateDistribution}}
+    abstract ScalarVariate <: Real
+    abstract ArrayVariate{N} <: DenseArray{Float64, N}
 
+    typealias AbstractVariate Union{ScalarVariate, ArrayVariate}
+    typealias VectorVariate ArrayVariate{1}
+    typealias MatrixVariate ArrayVariate{2}
+
+
+    #################### Distribution Types ####################
+
+    typealias DistributionStruct Union{Distribution,
+                                       Array{UnivariateDistribution},
+                                       Array{MultivariateDistribution}}
 
   #################### Dependent Types ####################
-abstract type ObservedValue end
 
-type OneObservedValue <: ObservedValue
-    value::Real
-end
+typealias OneObservedValue Real
 
-type ObservedValues{T<:Real,N} <: ObservedValue
-    value::AbstractArray{T,N} #How do we ensure that the element type <: Real without indexing the type?
-end
+typealias ObservedValues{T<:Real} AbstractArray{T} #How do we ensure that the element type <: Real without indexing the type?
+
+typealias ObservedValue Union{OneObservedValue, ObservedValues}
 
   type ScalarLogical <: ScalarVariate
-    value::Float64
+    value::OneObservedValue
     symbol::Symbol
     monitor::Vector{Int}
     eval::Function
@@ -89,7 +87,7 @@ end
   end
 
   type ArrayLogical{N} <: ArrayVariate{N}
-    value::Array{Float64, N}
+    value::ObservedValues{N}
     symbol::Symbol
     monitor::Vector{Int}
     eval::Function
@@ -98,7 +96,7 @@ end
   end
 
   type ScalarStochastic <: ScalarVariate
-    value::Float64
+    value::OneObservedValue
     symbol::Symbol
     monitor::Vector{Int}
     eval::Function
@@ -108,7 +106,7 @@ end
   end
 
   type ArrayStochastic{N} <: ArrayVariate{N}
-    value::ObservedValues
+    value::ObservedValues{N}
     symbol::Symbol
     monitor::Vector{Int}
     eval::Function
@@ -117,9 +115,9 @@ end
     distr::DistributionStruct
   end
 
-  AbstractLogical = Union{ScalarLogical, ArrayLogical}
-  AbstractStochastic = Union{ScalarStochastic, ArrayStochastic}
-  AbstractDependent = Union{AbstractLogical, AbstractStochastic}
+    typealias AbstractLogical Union{ScalarLogical, ArrayLogical}
+    typealias AbstractStochastic Union{ScalarStochastic, ArrayStochastic}
+    typealias AbstractDependent Union{AbstractLogical, AbstractStochastic}
 
 
   #################### Sampler Types ####################
@@ -132,7 +130,7 @@ end
   end
 
 
-  abstract type SamplerTune end
+  abstract SamplerTune
 
   type SamplerVariate{T<:SamplerTune} <: VectorVariate
     value::Vector{Float64}
@@ -175,7 +173,7 @@ end
 
   #################### Chains Type ####################
 
-  abstract type AbstractChains end
+  abstract AbstractChains
 
   immutable Chains <: AbstractChains
     value::Array{Float64, 3}
@@ -248,6 +246,9 @@ end
 
   export
     AbstractChains,
+    ObservedValue,
+    ObservedValues,
+    OneObservedValue,
     AbstractDependent,
     AbstractLogical,
     AbstractStochastic,

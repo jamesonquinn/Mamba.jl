@@ -34,7 +34,7 @@ model = Model(
   ),
 
   T = Stochastic(1,
-    (P, N) -> UnivariateDistribution[Categorical(P) for i in 1:N],
+    (P, N) -> UnivariateDistribution[Categorical(P.value) for i in 1:N],
     false
   ),
 
