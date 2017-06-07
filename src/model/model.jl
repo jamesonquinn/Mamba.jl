@@ -232,6 +232,14 @@ function names(m::Model, monitoronly::Bool)
   values = AbstractString[]
   for key in keys(m, :dependent)
     nodenames = names(m, key)
+    mon = m[key].monitor
+    print("\nMon\n")
+    print(mon)
+    print("\n Names\n")
+    print(nodenames)
+    print(@which names(m, key))
+    print("\n nodekeys\n")
+    print(key)
     v = monitoronly ? nodenames[m[key].monitor] : nodenames
     append!(values, v)
   end
@@ -240,6 +248,7 @@ end
 
 function names(m::Model, nodekey::Symbol)
   node = m[nodekey]
+  print(@which unlist(node, names(node)))
   unlist(node, names(node))
 end
 

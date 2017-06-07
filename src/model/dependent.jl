@@ -210,11 +210,16 @@ function unlist(s::AbstractStochastic, x::Real, transform::Bool=false)
 end
 
 function unlist(s::AbstractStochastic, x::AbstractArray, transform::Bool=false)
+  print(transform ? (@which unlist_sub(s.distr, link_sub(s.distr, x))) :
+              @which unlist_sub(s.distr, x))
   transform ? unlist_sub(s.distr, link_sub(s.distr, x)) :
               unlist_sub(s.distr, x)
+  print("\nfinished unlist\n")
 end
 
 function unlist(s::AbstractStochastic, x::ObservedValues, transform::Bool=false)
+  print(transform ? (@which unlist_sub(s.distr, link_sub(s.distr, x))) :
+              @which unlist_sub(s.distr, x))
   transform ? unlist_sub(s.distr, link_sub(s.distr, x)) :
               unlist_sub(s.distr, x)
 end

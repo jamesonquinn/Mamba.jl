@@ -67,9 +67,13 @@ function mcmc_worker!(args::Vector)
   relist!(m, state.value)
   settune!(m, state.tune)
 
-  print("qq2")
+  print("qq642")
+  print(m)
+  print("mmmm")
+  print(typeof(m))
+  print(@which names(m, true))
   pnames = names(m, true)
-  print("qq2"
+  print("qq52")
   sim = Chains(last(window), length(pnames), start=burnin + thin, thin=thin,
                names=pnames)
 
