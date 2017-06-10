@@ -117,45 +117,50 @@ function unlist(m::Model, monitoronly::Bool)
     lvalue = unlist(node)
     monitoronly ? lvalue[node.monitor] : lvalue
   end
-  vcat(map(f, keys(m, :dependent))...)
+  Dict(key => f(key) for key in keys(m, :dependent))
 end
 
 function unlist(m::Model, nodekeys::Vector{Symbol}, transform::Bool=false)
-  vcat(map(key -> unlist(m[key], transform), nodekeys)...)
+  Dict(key => unlist(m[key], transform) for key in nodekeys)
 end
 
 
-function relist{T<:Real}(m::Model, x::AbstractArray{T}, block::Integer=0,
+function relist{T<:Vector,K}(m::Model, x::Dict{K,T}, block::Integer=0,
                          transform::Bool=false)
   relist(m, x, keys(m, :block, block), transform)
 end
 
-function relist{T<:Real}(m::Model, x::AbstractArray{T},
+function relist{T<:Vector,K}(m::Model, x::Dict{K,T},
                          nodekeys::Vector{Symbol}, transform::Bool=false)
-  values = Dict{Symbol,Any}()
-  N = length(x)
-  offset = 0
-  for key in nodekeys
-    value, n = relistlength(m[key], view(x, (offset + 1):N), transform)
-    values[key] = value
-    offset += n
-  end
-  offset == length(x) ||
-    throw(ArgumentError("incompatible number of values to put in nodes"))
-  values
+  x
+  # values = Dict{Symbol,Any}()
+  # N = length(x)
+  # offset = 0
+  # for key in nodekeys
+  #   value, n = relistlength(m[key], view(x, (offset + 1):N), transform)
+  #   values[key] = value
+  #   offset += n
+  # end
+  # offset == length(x) ||
+  #   throw(ArgumentError("incompatible number of values to put in nodes"))
+  # values
 end
 
-function relist!{T<:Real}(m::Model, x::AbstractArray{T}, block::Integer=0,
+function relist!{T<:Vector,K}(m::Model, x::Dict{K,T}, block::Integer=0,
                  transform::Bool=false)
+  print("relist1\n")
+print((@which keys(m, :block, block)),"\n")
   nodekeys = keys(m, :block, block)
+print("relist2\n")
   values = relist(m, x, nodekeys, transform)
+print("relist3\n")
   for key in nodekeys
     m[key].value = values[key]
   end
   update!(m, block)
 end
 
-function relist!{T<:Real}(m::Model, x::AbstractArray{T}, nodekey::Symbol,
+function relist!{T<:Vector,K}(m::Model, x::Dict{K,T}, nodekey::Symbol,
                           transform::Bool=false)
   node = m[nodekey]
   m[nodekey] = relist(node, x, transform)

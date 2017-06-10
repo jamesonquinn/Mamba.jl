@@ -20,15 +20,17 @@ unlist_sub(d::UnivariateDistribution, X::AbstractArray) = vec(X)
 unlist_sub(D::Array{UnivariateDistribution}, X::AbstractArray) = vec(X)
 
 function unlist_sub(D::Array{MultivariateDistribution}, X::AbstractArray)
-  y = similar(X, length(X))
-  offset = 0
-  for sub in CartesianRange(size(D))
-    n = length(D[sub])
-    inds = 1:n
-    y[offset + inds] = X[sub, inds]
-    offset += n
-  end
-  resize!(y, offset)
+  X
+  # Here's the previous code for flattening the array...
+  # y = similar(X, length(X))
+  # offset = 0
+  # for sub in CartesianRange(size(D))
+  #   n = length(D[sub])
+  #   inds = 1:n
+  #   y[offset + inds] = X[sub, inds]
+  #   offset += n
+  # end
+  # resize!(y, offset)
 end
 
 

@@ -150,7 +150,7 @@ module Mamba
   end
 
   type ModelState
-    value::Vector{Float64}
+    value::Dict{Union{Symbol,Tuple{Symbol,Int}},Vector{Float64}}
     tune::Vector{Any}
   end
 
@@ -163,7 +163,6 @@ module Mamba
     hasinputs::Bool
     hasinits::Bool
   end
-
 
   #################### Chains Type ####################
 
