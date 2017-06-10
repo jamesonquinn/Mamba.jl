@@ -114,6 +114,10 @@ module Mamba
   typealias AbstractDependent Union{AbstractLogical, AbstractStochastic}
 
 
+typealias NodeStateVal Vector{Float64}
+typealias ModelStateVal Dict{Union{Symbol,Tuple{Symbol,Int}},Vector{Float64}}
+typealias AnyStateVal Union{NodeStateVal,ModelStateVal}
+
   #################### Sampler Types ####################
 
   type Sampler{T}
@@ -127,7 +131,7 @@ module Mamba
   abstract SamplerTune
 
   type SamplerVariate{T<:SamplerTune} <: VectorVariate
-    value::Vector{Float64}
+    value::AnyStateVal
     tune::T
 
     function SamplerVariate{U<:Real}(x::AbstractVector{U}, tune::T)
@@ -138,6 +142,10 @@ module Mamba
     function SamplerVariate{U<:Real}(x::AbstractVector{U}, pargs...; kargs...)
       value = convert(Vector{Float64}, x)
       SamplerVariate{T}(value, T(value, pargs...; kargs...))
+    end
+
+    function SamplerVariate(x::ModelStateVal, pargs...; kargs...)
+      SamplerVariate{T}(x, T(x, pargs...; kargs...))
     end
   end
 
@@ -150,7 +158,7 @@ module Mamba
   end
 
   type ModelState
-    value::Dict{Union{Symbol,Tuple{Symbol,Int}},Vector{Float64}}
+    value::ModelStateVal
     tune::Vector{Any}
   end
 

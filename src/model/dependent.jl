@@ -153,6 +153,14 @@ end
 
 
 #################### Updating ####################
+function setval!(s::ScalarStochastic, a::AbstractArray)
+    s.value=a[1]
+end
+
+function setval!(s::ArrayStochastic, a::AbstractArray)
+    s.value=a
+end
+
 
 function setinits!(s::ScalarStochastic, m::Model, x::Real)
   s.value = convert(Float64, x)

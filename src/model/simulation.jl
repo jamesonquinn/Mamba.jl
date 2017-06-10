@@ -117,20 +117,20 @@ function unlist(m::Model, monitoronly::Bool)
     lvalue = unlist(node)
     monitoronly ? lvalue[node.monitor] : lvalue
   end
-  Dict(key => f(key) for key in keys(m, :dependent))
+  ModelStateVal(key => f(key) for key in keys(m, :dependent))
 end
 
 function unlist(m::Model, nodekeys::Vector{Symbol}, transform::Bool=false)
-  Dict(key => unlist(m[key], transform) for key in nodekeys)
+  ModelStateVal(key => unlist(m[key], transform) for key in nodekeys)
 end
 
 
-function relist{T<:Vector,K}(m::Model, x::Dict{K,T}, block::Integer=0,
+function relist(m::Model, x::ModelStateVal, block::Integer=0,
                          transform::Bool=false)
   relist(m, x, keys(m, :block, block), transform)
 end
 
-function relist{T<:Vector,K}(m::Model, x::Dict{K,T},
+function relist(m::Model, x::ModelStateVal,
                          nodekeys::Vector{Symbol}, transform::Bool=false)
   x
   # values = Dict{Symbol,Any}()
@@ -146,21 +146,17 @@ function relist{T<:Vector,K}(m::Model, x::Dict{K,T},
   # values
 end
 
-function relist!{T<:Vector,K}(m::Model, x::Dict{K,T}, block::Integer=0,
+function relist!(m::Model, x::ModelStateVal, block::Integer=0,
                  transform::Bool=false)
-  print("relist1\n")
-print((@which keys(m, :block, block)),"\n")
   nodekeys = keys(m, :block, block)
-print("relist2\n")
   values = relist(m, x, nodekeys, transform)
-print("relist3\n")
   for key in nodekeys
-    m[key].value = values[key]
+    setval!(m[key], values[key])
   end
   update!(m, block)
 end
 
-function relist!{T<:Vector,K}(m::Model, x::Dict{K,T}, nodekey::Symbol,
+function relist!(m::Model, x::ModelStateVal, nodekey::Symbol,
                           transform::Bool=false)
   node = m[nodekey]
   m[nodekey] = relist(node, x, transform)
