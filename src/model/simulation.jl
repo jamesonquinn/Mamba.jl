@@ -125,12 +125,12 @@ function unlist(m::Model, nodekeys::Vector{Symbol}, transform::Bool=false)
 end
 
 
-function relist(m::Model, x::ModelStateVal, block::Integer=0,
+function relist(m::Model, x::AbstractStateVal, block::Integer=0,
                          transform::Bool=false)
   relist(m, x, keys(m, :block, block), transform)
 end
 
-function relist(m::Model, x::ModelStateVal,
+function relist(m::Model, x::AbstractStateVal,
                          nodekeys::Vector{Symbol}, transform::Bool=false)
   x
   # values = Dict{Symbol,Any}()
@@ -146,7 +146,7 @@ function relist(m::Model, x::ModelStateVal,
   # values
 end
 
-function relist!(m::Model, x::ModelStateVal, block::Integer=0,
+function relist!(m::Model, x::AbstractStateVal, block::Integer=0,
                  transform::Bool=false)
   nodekeys = keys(m, :block, block)
   values = relist(m, x, nodekeys, transform)
@@ -156,7 +156,7 @@ function relist!(m::Model, x::ModelStateVal, block::Integer=0,
   update!(m, block)
 end
 
-function relist!(m::Model, x::ModelStateVal, nodekey::Symbol,
+function relist!(m::Model, x::AbstractStateVal, nodekey::Symbol,
                           transform::Bool=false)
   node = m[nodekey]
   m[nodekey] = relist(node, x, transform)

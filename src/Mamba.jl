@@ -113,10 +113,33 @@ module Mamba
   typealias AbstractStochastic Union{ScalarStochastic, ArrayStochastic}
   typealias AbstractDependent Union{AbstractLogical, AbstractStochastic}
 
+typealias FlatStateVal{U<:Real} Vector{U}
+typealias UnflatStateVal{U<:Real} Dict{Union{Symbol,Tuple{Symbol,Int}},Vector{U}}
+typealias AbstractStateVal{U} Union{FlatStateVal{U}, UnflatStateVal{U}}
 
-typealias NodeStateVal Vector{Float64}
-typealias ModelStateVal Dict{Union{Symbol,Tuple{Symbol,Int}},Vector{Float64}}
-typealias AnyStateVal Union{NodeStateVal,ModelStateVal}
+type StateValVec{S<:AbstractStateVal}
+    vals::Vector{S}
+end
+type StateValMatrix{S<:AbstractStateVal}
+    vals::Matrix{S}
+end
+
+
+
+
+
+typealias FlatStateValVec{S<:FlatStateVal} Array{Float64,2}
+typealias FlatStateValMatrix{S<:FlatStateVal} Array{Float64,3}
+
+
+
+
+
+
+
+typealias AbstractStateValVec{S<:AbstractStateVal} Union{StateValVec{S}, FlatStateValVec{S}}
+typealias AbstractStateValMatrix{S<:AbstractStateVal} Union{StateValMatrix{S}, FlatStateValMatrix{S}}
+
 
   #################### Sampler Types ####################
 
@@ -130,21 +153,21 @@ typealias AnyStateVal Union{NodeStateVal,ModelStateVal}
 
   abstract SamplerTune
 
-  type SamplerVariate{T<:SamplerTune} <: VectorVariate
-    value::AnyStateVal
+  type SamplerVariate{T<:SamplerTune,S<:AbstractStateVal} <: VectorVariate
+    value::S
     tune::T
 
-    function SamplerVariate{U<:Real}(x::AbstractVector{U}, tune::T)
+    function SamplerVariate{U<:Real}(x::FlatStateVal{U}, tune::T)
       v = new(x, tune)
       validate(v)
     end
 
-    function SamplerVariate{U<:Real}(x::AbstractVector{U}, pargs...; kargs...)
+    function SamplerVariate{U<:Real}(x::FlatStateVal{U}, pargs...; kargs...)
       value = convert(Vector{Float64}, x)
       SamplerVariate{T}(value, T(value, pargs...; kargs...))
     end
 
-    function SamplerVariate(x::ModelStateVal, pargs...; kargs...)
+    function SamplerVariate(x::AbstractStateVal, pargs...; kargs...)
       SamplerVariate{T}(x, T(x, pargs...; kargs...))
     end
   end
@@ -157,34 +180,46 @@ typealias AnyStateVal Union{NodeStateVal,ModelStateVal}
     keys::Vector{Symbol}
   end
 
-  type ModelState
-    value::ModelStateVal
+  type ModelState{T<:AbstractStateVal}
+    value::T
     tune::Vector{Any}
   end
 
-  type Model
+  type ModelF{S<:FlatStateVal}
     nodes::Dict{Symbol, Any}
     samplers::Vector{Sampler}
-    states::Vector{ModelState}
+    states::FlatStateValVec{S}
     iter::Int
     burnin::Int
     hasinputs::Bool
     hasinits::Bool
   end
 
+  type ModelNF{S<:FlatStateVal}
+    nodes::Dict{Symbol, Any}
+    samplers::Vector{Sampler}
+    states::StateValVec{S}
+    iter::Int
+    burnin::Int
+    hasinputs::Bool
+    hasinits::Bool
+  end
+
+  typealias Model{S<:AbstractStateVal} Union{ModelF{S}, ModelNF{S}}
+
   #################### Chains Type ####################
 
-  abstract AbstractChains
+  abstract AbstractChains{S<:AbstractStateVal}
 
-  immutable Chains <: AbstractChains
-    value::Array{Float64, 3}
+  immutable Chains{S<:AbstractStateVal} <: AbstractChains{S}
+    value::AbstractStateValMatrix{S}
     range::Range{Int}
     names::Vector{AbstractString}
     chains::Vector{Int}
   end
 
-  immutable ModelChains <: AbstractChains
-    value::Array{Float64, 3}
+  immutable ModelChains{S<:AbstractStateVal} <: AbstractChains{S}
+    value::AbstractStateValMatrix{S}
     range::Range{Int}
     names::Vector{AbstractString}
     chains::Vector{Int}

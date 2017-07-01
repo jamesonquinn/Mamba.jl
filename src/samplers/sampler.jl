@@ -24,7 +24,7 @@ function Sampler(params::Vector{Symbol}, f::Function, tune::Any=Dict())
 end
 
 
-function SamplerVariate{T<:SamplerTune, U<:Real}(x::ModelStateVal, tune::T)
+function SamplerVariate{T<:SamplerTune}(x::AbstractStateVal, tune::T)
   SamplerVariate{T}(x, tune)
 end
 
@@ -34,7 +34,7 @@ function SamplerVariate(block::SamplingBlock, pargs...; kargs...)
                  kargs...)
 end
 
-function SamplerVariate{T<:SamplerTune}(x::ModelStateVal,
+function SamplerVariate{T<:SamplerTune}(x::AbstractStateVal,
                                                  s::Sampler{T}, iter::Integer,
                                                  pargs...; kargs...)
   if iter == 1

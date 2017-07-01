@@ -1,10 +1,11 @@
 #################### Model Expression Operators ####################
+typealias DTy Union{DataType, TypeConstructor}
 
-function modelfx(literalargs::Vector{Tuple{Symbol, DataType}}, f::Function)
+function modelfx(literalargs::Vector{Tuple{Symbol, TypeConstructor}}, f::Function)
   modelfxsrc(literalargs, f)[1]
 end
 
-function modelfxsrc(literalargs::Vector{Tuple{Symbol, DataType}}, f::Function)
+function modelfxsrc(literalargs::Vector{Tuple{Symbol, TypeConstructor}}, f::Function)
   args = Expr(:tuple, map(arg -> Expr(:(::), arg[1], arg[2]), literalargs)...)
   expr, src = modelexprsrc(f, literalargs)
   fx = eval(Expr(:function, args, expr))
@@ -12,7 +13,7 @@ function modelfxsrc(literalargs::Vector{Tuple{Symbol, DataType}}, f::Function)
 end
 
 
-function modelexprsrc(f::Function, literalargs::Vector{Tuple{Symbol, DataType}})
+function modelexprsrc(f::Function, literalargs::Vector{Tuple{Symbol, TypeConstructor}})
   li = first(code_typed(f))
   fkeys = Symbol[li.slotnames[i] for i in 2:li.nargs]
   ftypes = DataType[li.slottypes[i] for i in 2:li.nargs]
