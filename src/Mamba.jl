@@ -1,6 +1,7 @@
 using Distributions
 
 module Mamba
+  debugVal = 0
 
   #################### Imports ####################
 
@@ -128,17 +129,19 @@ end
 
 
 
-typealias FlatStateValVec{S<:FlatStateVal} Array{Float64,2}
-typealias FlatStateValMatrix{S<:FlatStateVal} Array{Float64,3}
+FlatStateValVec{S<:FlatStateVal} = Array{S,2}
+
+
+typealias FlatStateValMatrix{S<:FlatStateVal} Array{S,3}
 
 
 
 
+  typealias AbstractStateValVec{S<:AbstractStateVal} Union{StateValVec{S}, FlatStateValVec{S}}
+  typealias AbstractStateValMatrix{S<:AbstractStateVal} Union{StateValMatrix{S}, FlatStateValMatrix{S}}
 
 
 
-typealias AbstractStateValVec{S<:AbstractStateVal} Union{StateValVec{S}, FlatStateValVec{S}}
-typealias AbstractStateValMatrix{S<:AbstractStateVal} Union{StateValMatrix{S}, FlatStateValMatrix{S}}
 
 
   #################### Sampler Types ####################
@@ -149,6 +152,8 @@ typealias AbstractStateValMatrix{S<:AbstractStateVal} Union{StateValMatrix{S}, F
     tune::T
     targets::Vector{Symbol}
   end
+
+
 
 
   abstract SamplerTune
