@@ -50,24 +50,24 @@ module Mamba
 
   #################### Types ####################
 
-  typealias ElementOrVector{T} Union{T, Vector{T}}
+  ElementOrVector{T} = Union{T, Vector{T}}
 
 
   #################### Variate Types ####################
 
-  abstract ScalarVariate <: Real
-  abstract ArrayVariate{N} <: DenseArray{Float64, N}
+  abstract type ScalarVariate <: Real end
+  abstract type ArrayVariate{N} <: DenseArray{Float64, N} end
 
-  typealias AbstractVariate Union{ScalarVariate, ArrayVariate}
-  typealias VectorVariate ArrayVariate{1}
-  typealias MatrixVariate ArrayVariate{2}
+  const AbstractVariate = Union{ScalarVariate, ArrayVariate}
+  const VectorVariate = ArrayVariate{1}
+  const MatrixVariate = ArrayVariate{2}
 
 
   #################### Distribution Types ####################
 
-  typealias DistributionStruct Union{Distribution,
-                                     Array{UnivariateDistribution},
-                                     Array{MultivariateDistribution}}
+  const DistributionStruct = Union{Distribution,
+                                   Array{UnivariateDistribution},
+                                   Array{MultivariateDistribution}}
 
 
   #################### Dependent Types ####################
@@ -110,9 +110,9 @@ module Mamba
     distr::DistributionStruct
   end
 
-  typealias AbstractLogical Union{ScalarLogical, ArrayLogical}
-  typealias AbstractStochastic Union{ScalarStochastic, ArrayStochastic}
-  typealias AbstractDependent Union{AbstractLogical, AbstractStochastic}
+  const AbstractLogical = Union{ScalarLogical, ArrayLogical}
+  const AbstractStochastic = Union{ScalarStochastic, ArrayStochastic}
+  const AbstractDependent = Union{AbstractLogical, AbstractStochastic}
 
 typealias FlatStateVal{U<:Real} Vector{U}
 typealias UnflatStateVal{U<:Real} Dict{Union{Symbol,Tuple{Symbol,Int}},Vector{U}}
@@ -154,20 +154,18 @@ typealias FlatStateValMatrix{S<:FlatStateVal} Array{S,3}
   end
 
 
-
-
-  abstract SamplerTune
+  abstract type SamplerTune end
 
   type SamplerVariate{T<:SamplerTune,S<:AbstractStateVal} <: VectorVariate
     value::S
     tune::T
 
-    function SamplerVariate{U<:Real}(x::FlatStateVal{U}, tune::T)
+    function SamplerVariate{U<:Real}(x::FlatStateVal{U}, tune::T) where T<:SamplerTune
       v = new(x, tune)
       validate(v)
     end
 
-    function SamplerVariate{U<:Real}(x::FlatStateVal{U}, pargs...; kargs...)
+    function SamplerVariate{U<:Real}(x::FlatStateVal{U}, pargs...; kargs...)where T<:SamplerTune
       value = convert(Vector{Float64}, x)
       SamplerVariate{T}(value, T(value, pargs...; kargs...))
     end
@@ -214,7 +212,7 @@ typealias FlatStateValMatrix{S<:FlatStateVal} Array{S,3}
 
   #################### Chains Type ####################
 
-  abstract AbstractChains{S<:AbstractStateVal}
+  abstract type AbstractChains{S<:AbstractStateVal} end
 
   immutable Chains{S<:AbstractStateVal} <: AbstractChains{S}
     value::AbstractStateValMatrix{S}
@@ -281,6 +279,8 @@ typealias FlatStateValMatrix{S<:FlatStateVal} Array{S,3}
   include("samplers/rwm.jl")
   include("samplers/slice.jl")
   include("samplers/slicesimplex.jl")
+
+  include("maxpost/maxpost.jl")
 
 
   #################### Exports ####################

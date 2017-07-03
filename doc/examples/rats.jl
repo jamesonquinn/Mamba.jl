@@ -118,5 +118,24 @@ setsamplers!(model, scheme)
 
 
 ## MCMC Simulations
-sim = mcmc(model, rats, inits, 10000, burnin=2500, thin=2, chains=2)
+sim = mcmc(model, rats, inits, 10, burnin=2, thin=2, chains=2)
+
+
+function logpdfMaker!(m::Model, inputs::Dict{Symbol}, paramNames::Vector{Symbol})
+  setinputs!(m, inputs)
+  function logpdfer(paramVals)
+    params = Dict{Symbol}()
+    for (name,val) in zip(paramNames,paramVals)
+      params[name] = val
+    end
+    setinits!(m, params)
+    return logpdf(m)
+  end
+  return logpdfer
+  mcmc_master!(mm, 1:iters, burnin, thin, 1:chains, verbose)
+end
+
+
+
+
 describe(sim)

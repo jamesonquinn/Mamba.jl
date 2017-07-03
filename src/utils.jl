@@ -1,5 +1,4 @@
 #################### Model Expression Operators ####################
-DTy = UnionAll #Union{DataType, TypeConstructor}
 
 function modelfx(literalargs::Vector{Tuple{Symbol, DTy}}, f::Function)
   modelfxsrc(literalargs, f)[1]
@@ -13,12 +12,13 @@ function modelfxsrc(literalargs::Vector{Tuple{Symbol, DTy}}, f::Function)
 end
 
 
-function modelexprsrc(f::Function, literalargs::Vector{Tuple{Symbol, DTy}})
-  li = first(code_typed(f))
-  global debugVal = f
-  print(li)
-  fkeys = Symbol[li.slotnames[i] for i in 2:li.nargs]
-  ftypes = DataType[li.slottypes[i] for i in 2:li.nargs]
+function modelexprsrc(f::Function, literalargs::Vector{Tuple{Symbol, DataType}})
+  m = first(methods(f).ms)
+  argnames = Vector{Any}(m.nargs)
+  ccall(:jl_fill_argnames, Void, (Any, Any), m.source, argnames)
+
+  fkeys = Symbol[argnames[2:end]...]
+  ftypes = DataType[m.sig.parameters[2:end]...]
   n = length(fkeys)
 
   literalinds = Int[]
@@ -93,7 +93,7 @@ end
 
 function pmap2(f::Function, lsts::AbstractArray)
   if (nprocs() > 1) & (VERSION < v"0.5-")
-    @everywhere using Mamba
+    @everywhere importall Mamba
     pmap(f, lsts)
   else
     map(f, lsts)
