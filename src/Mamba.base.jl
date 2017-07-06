@@ -159,20 +159,20 @@ typealias FlatStateValMatrix{S<:FlatStateVal} Array{S,3}
   type SamplerVariate{T<:SamplerTune,S<:AbstractStateVal} <: VectorVariate
     value::S
     tune::T
-    #
-    # function SamplerVariate{U<:Real}(x::FlatStateVal{U}, tune::T) where T<:SamplerTune
-    #   v = new(x, tune)
-    #   validate(v)
-    # end
-    #
-    # function SamplerVariate{U<:Real}(x::FlatStateVal{U}, pargs...; kargs...)where T<:SamplerTune
-    #   value = convert(Vector{Float64}, x)
-    #   SamplerVariate{T}(value, T(value, pargs...; kargs...))
-    # end
-    #
-    # function SamplerVariate(x::AbstractStateVal, pargs...; kargs...)
-    #   SamplerVariate{T}(x, T(x, pargs...; kargs...))
-    # end
+
+    function SamplerVariate{U<:Real}(x::FlatStateVal{U}, tune::T) where T<:SamplerTune
+      v = new(x, tune)
+      validate(v)
+    end
+
+    function SamplerVariate{U<:Real}(x::FlatStateVal{U}, pargs...; kargs...)where T<:SamplerTune
+      value = convert(Vector{Float64}, x)
+      SamplerVariate{T}(value, T(value, pargs...; kargs...))
+    end
+
+    function SamplerVariate(x::AbstractStateVal, pargs...; kargs...)
+      SamplerVariate{T}(x, T(x, pargs...; kargs...))
+    end
   end
 
 

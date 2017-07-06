@@ -3,6 +3,9 @@ using Optim
 using ForwardDiff
 using Mamba
 
+import ForwardDiff:
+        Dual
+
 import Distributions:
         logpdf
 
@@ -83,89 +86,100 @@ function logpdf(d::GossipyNormal, v::Float64)
   logpdf(d.Z,v)
 end
 
-minimodel = Model(
-  y = Stochastic(1,
-    (mu, s2) ->  Normal(mu, sqrt(s2)),
-    false
-  ),
-
-  mu = Stochastic(
-    () -> Normal(0, sqrt(1000))
-  ),
-
-  s2 = Stochastic(
-    () -> Normal(2, 0.001)
-  )
-
-)
-
-minidata = Dict{Symbol, Any}(
-              :y => [1, 3, 3, 3, 5]
-            )
-miniinit = Dict{Symbol, Any}(
-              :y => minidata[:y],
-              :mu => 2.5,
-              :s2 => 1
-            )
-setsamplers!(minimodel, [NUTS([:mu, :s2])])
-setinputs!(minimodel, minidata)
-setinits!(minimodel, miniinit)
-optimOver(minimodel, miniinit, [:mu,:s2])
-logpdf(minimodel)
-minimodel
-z = Normal()
-logpdf(z,[1,2,3])
 
 
 
 
 
-model = Model(
-
-  y = Stochastic(1,
-    (mu, s2) ->  MvNormal(mu, sqrt(s2)),
-    false
-  ),
-
-  mu = Logical(1,
-    (xmat, beta) -> xmat * beta,
-    false
-  ),
-
-  beta = Stochastic(1,
-    () -> MvNormal(2, sqrt(1000))
-  ),
-
-  s2 = Stochastic(
-    () -> InverseGamma(0.001, 0.001)
-  )
-
-)
-line = Dict{Symbol, Any}(
-  :x => [1, 2, 3, 4, 5],
-  :y => [1, 3, 3, 3, 5]
-)
-line[:xmat] = [ones(5) line[:x]]
-## Initial Values
-## Initial Values
-inits = [
-  Dict{Symbol, Any}(
-    :y => line[:y],
-    :beta => rand(Normal(0, 1), 2),
-    :s2 => rand(Gamma(1, 1))
-  )
-  for i in 1:3
-]
 
 
 
-setinputs!(model, line)
-setinits!(model, inits)
-logpdf(model)
 
-function f(v::Array{Number,1})
-  v
-end
-dualvec = Array{}(Dual{Real},5)
-typeof(dualvec) <: Array{Dual
-f(Array(Dual{Real},9))
+
+#
+# minimodel = Model(
+#   y = Stochastic(1,
+#     (mu, s2) ->  Normal(mu, sqrt(s2)),
+#     false
+#   ),
+#
+#   mu = Stochastic(
+#     () -> Normal(0, sqrt(1000))
+#   ),
+#
+#   s2 = Stochastic(
+#     () -> Normal(2, 0.001)
+#   )
+#
+# )
+#
+# minidata = Dict{Symbol, Any}(
+#               :y => [1, 3, 3, 3, 5]
+#             )
+# miniinit = Dict{Symbol, Any}(
+#               :y => minidata[:y],
+#               :mu => 2.5,
+#               :s2 => 1
+#             )
+# setsamplers!(minimodel, [NUTS([:mu, :s2])])
+# setinputs!(minimodel, minidata)
+# setinits!(minimodel, miniinit)
+# optimOver(minimodel, miniinit, [:mu,:s2])
+# logpdf(minimodel)
+# minimodel
+# z = Normal()
+# logpdf(z,[1,2,3])
+#
+#
+#
+#
+#
+# model = Model(
+#
+#   y = Stochastic(1,
+#     (mu, s2) ->  MvNormal(mu, sqrt(s2)),
+#     false
+#   ),
+#
+#   mu = Logical(1,
+#     (xmat, beta) -> xmat * beta,
+#     false
+#   ),
+#
+#   beta = Stochastic(1,
+#     () -> MvNormal(2, sqrt(1000))
+#   ),
+#
+#   s2 = Stochastic(
+#     () -> InverseGamma(0.001, 0.001)
+#   )
+#
+# )
+# line = Dict{Symbol, Any}(
+#   :x => [1, 2, 3, 4, 5],
+#   :y => [1, 3, 3, 3, 5]
+# )
+# line[:xmat] = [ones(5) line[:x]]
+# ## Initial Values
+# ## Initial Values
+# inits = [
+#   Dict{Symbol, Any}(
+#     :y => line[:y],
+#     :beta => rand(Normal(0, 1), 2),
+#     :s2 => rand(Gamma(1, 1))
+#   )
+#   for i in 1:3
+# ]
+#
+#
+#
+# setinputs!(model, line)
+# setinits!(model, inits)
+# logpdf(model)
+#
+# function f(v::Array{Number,1})
+#   v
+# end
+# dualvec = Array{}(Dual{Real},5)
+# typeof(dualvec) <: Array{Dual
+# f(Array(Dual{Real},9))

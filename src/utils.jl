@@ -1,10 +1,10 @@
 #################### Model Expression Operators ####################
 
-function modelfx(literalargs::Vector{Tuple{Symbol, DTy}}, f::Function)
+function modelfx(literalargs::Vector{Tuple{Symbol, UnionAll}}, f::Function)
   modelfxsrc(literalargs, f)[1]
 end
 
-function modelfxsrc(literalargs::Vector{Tuple{Symbol, DTy}}, f::Function)
+function modelfxsrc(literalargs::Vector{Tuple{Symbol, UnionAll}}, f::Function)
   args = Expr(:tuple, map(arg -> Expr(:(::), arg[1], arg[2]), literalargs)...)
   expr, src = modelexprsrc(f, literalargs)
   fx = eval(Expr(:function, args, expr))
@@ -12,7 +12,7 @@ function modelfxsrc(literalargs::Vector{Tuple{Symbol, DTy}}, f::Function)
 end
 
 
-function modelexprsrc(f::Function, literalargs::Vector{Tuple{Symbol, DataType}})
+function modelexprsrc(f::Function, literalargs::Vector{Tuple{Symbol, UnionAll}})
   m = first(methods(f).ms)
   argnames = Vector{Any}(m.nargs)
   ccall(:jl_fill_argnames, Void, (Any, Any), m.source, argnames)
