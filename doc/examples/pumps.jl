@@ -1,4 +1,23 @@
-using Mamba
+
+
+macro load(pkg)
+  quote
+    if isdefined(Symbol($(string(pkg))))
+      #try
+      #  reload(ucfirst(string(pkg)))
+      #catch
+        reload($(string(pkg)))
+      #end
+    else
+      using $pkg
+    end
+  end
+end
+
+@load Mamba
+
+
+include("../../src/distributions/dirichletprocess.jl")
 
 ## Data
 pumps = Dict{Symbol, Any}(
@@ -55,7 +74,7 @@ setsamplers!(model, scheme)
 
 
 ## MCMC Simulations
-sim = mcmc(model, pumps, inits, 10000, burnin=2500, thin=2, chains=2)
+sim = mcmc(model, pumps, inits, 1000, burnin=250, thin=2, chains=2)
 describe(sim)
 
 

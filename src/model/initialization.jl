@@ -17,12 +17,15 @@ function setinits!(m::Model, inits::Dict{Symbol, Any})
   m
 end
 
-function setinits!(m::Model, inits::Vector{Dict{Symbol, Any}})
+function setinits!{S}(m::Model{S}, inits::Vector{Dict{Symbol, Any}})
   n = length(inits)
-  m.states = Array{ModelState}(n)
+  print(n)
+  print(Array{ModelState{S}}(2))
+  m.states = typeof(m.states)(n)#Array{ModelState{S}}(n)
+  print("qqqq")
   for i in n:-1:1
     setinits!(m, inits[i])
-    m.states[i] = ModelState(unlist(m), deepcopy(gettune(m)))
+    m.states[i] = typeof(m.states[1])(unlist(m), deepcopy(gettune(m)))
   end
   m
 end

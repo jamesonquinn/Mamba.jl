@@ -50,7 +50,7 @@ module Mamba
 
   #################### Types ####################
 
-  ElementOrVector{T} = Union{T, Vector{T}}
+  const ElementOrVector{T} = Union{T, Vector{T}}
 
 
   #################### Variate Types ####################
@@ -114,31 +114,27 @@ module Mamba
   const AbstractStochastic = Union{ScalarStochastic, ArrayStochastic}
   const AbstractDependent = Union{AbstractLogical, AbstractStochastic}
 
-typealias FlatStateVal{U<:Real} Vector{U}
-typealias UnflatStateVal{U<:Real} Dict{Union{Symbol,Tuple{Symbol,Int}},Vector{U}}
-typealias AbstractStateVal{U} Union{FlatStateVal{U}, UnflatStateVal{U}}
+const FlatStateVal{U<:Real} = Vector{U}
+const UnflatStateVal{U<:Real} = Dict{Union{Symbol,Tuple{Symbol,Int}},Vector{U}}
+const AbstractStateVal{U} = Union{FlatStateVal{U}, UnflatStateVal{U}}
 
-type StateValVec{S<:AbstractStateVal}
-    vals::Vector{S}
-end
-type StateValMatrix{S<:AbstractStateVal}
-    vals::Matrix{S}
-end
+const StateValVec{S<:AbstractStateVal} = Vector{S}
+const StateValMatrix{S<:AbstractStateVal} = Matrix{S}
 
 
 
 
 
-FlatStateValVec{S<:FlatStateVal} = Array{S,2}
+const FlatStateValVec{S<:FlatStateVal} = Array{S,2}
 
 
-typealias FlatStateValMatrix{S<:FlatStateVal} Array{S,3}
+const FlatStateValMatrix{S<:FlatStateVal} = Array{S,3}
 
 
 
 
-  typealias AbstractStateValVec{S<:AbstractStateVal} Union{StateValVec{S}, FlatStateValVec{S}}
-  typealias AbstractStateValMatrix{S<:AbstractStateVal} Union{StateValMatrix{S}, FlatStateValMatrix{S}}
+const AbstractStateValVec{S<:AbstractStateVal} = Union{StateValVec{S}, FlatStateValVec{S}}
+const AbstractStateValMatrix{S<:AbstractStateVal} = Union{StateValMatrix{S}, FlatStateValMatrix{S}}
 
 
 
@@ -198,7 +194,7 @@ typealias FlatStateValMatrix{S<:FlatStateVal} Array{S,3}
     hasinits::Bool
   end
 
-  type ModelNF{S<:FlatStateVal}
+  type ModelNF{S<:UnflatStateVal}
     nodes::Dict{Symbol, Any}
     samplers::Vector{Sampler}
     states::StateValVec{S}
@@ -209,6 +205,8 @@ typealias FlatStateValMatrix{S<:FlatStateVal} Array{S,3}
   end
 
   typealias Model{S<:AbstractStateVal} Union{ModelF{S}, ModelNF{S}}
+
+
 
   #################### Chains Type ####################
 

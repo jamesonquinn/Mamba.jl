@@ -1,7 +1,8 @@
 using Distributions
 using StatsBase
 
-import Base: rand!
+import Base:
+    rand!, length
 import Distributions: logpdf
 
 immutable DirichletPInt{T<:Integer} <: ContinuousMultivariateDistribution

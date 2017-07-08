@@ -1,10 +1,11 @@
 #################### Model Expression Operators ####################
+const EitherTupleVec = Union{Vector{Tuple{Symbol, Type}}, Vector{Tuple{Symbol, UnionAll}}}
 
-function modelfx(literalargs::Vector{Tuple{Symbol, UnionAll}}, f::Function)
+function modelfx(literalargs::EitherTupleVec, f::Function)
   modelfxsrc(literalargs, f)[1]
 end
 
-function modelfxsrc(literalargs::Vector{Tuple{Symbol, UnionAll}}, f::Function)
+function modelfxsrc(literalargs::EitherTupleVec, f::Function)
   args = Expr(:tuple, map(arg -> Expr(:(::), arg[1], arg[2]), literalargs)...)
   expr, src = modelexprsrc(f, literalargs)
   fx = eval(Expr(:function, args, expr))
@@ -12,13 +13,13 @@ function modelfxsrc(literalargs::Vector{Tuple{Symbol, UnionAll}}, f::Function)
 end
 
 
-function modelexprsrc(f::Function, literalargs::Vector{Tuple{Symbol, UnionAll}})
+function modelexprsrc(f::Function, literalargs::EitherTupleVec)
   m = first(methods(f).ms)
   argnames = Vector{Any}(m.nargs)
   ccall(:jl_fill_argnames, Void, (Any, Any), m.source, argnames)
 
   fkeys = Symbol[argnames[2:end]...]
-  ftypes = DataType[m.sig.parameters[2:end]...]
+  ftypes = Type[m.sig.parameters[2:end]...] #DataType[m.sig.parameters[2:end]...]
   n = length(fkeys)
 
   literalinds = Int[]

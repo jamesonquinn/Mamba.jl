@@ -2,7 +2,7 @@
 
 #################### Constructors ####################
 
-function Model(; flat::Bool=F, iter::Integer=0, burnin::Integer=0,
+function Model(; flat::Bool=false, iter::Integer=0, burnin::Integer=0,
                samplers::Vector{Sampler}=Sampler[], nodes...)
   nodedict = Dict{Symbol, Any}()
   for (key, value) in nodes
@@ -15,7 +15,7 @@ function Model(; flat::Bool=F, iter::Integer=0, burnin::Integer=0,
   if flat
       m = ModelF{FlatStateVal{Int64}}(nodedict, Sampler[], FlatStateVal{Int64}[], iter, burnin, false, false)
   else
-      m = ModelNF{StateVal{Int64}}(nodedict, Sampler[], StateVal{Int64}[], iter, burnin, false, false)
+      m = ModelNF{UnflatStateVal{Int64}}(nodedict, Sampler[], UnflatStateVal{Int64}[], iter, burnin, false, false)
   end
   dag = ModelGraph(m)
   dependentkeys = keys(m, :dependent)
