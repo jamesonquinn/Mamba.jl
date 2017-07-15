@@ -22,18 +22,18 @@ function Base.showall(io::IO, d::AbstractDependent)
   show(io, d.targets)
 end
 
-dims(d::AbstractDependent) = size(d)
+dims(d::AbstractDependent) = size(d.value)
 
 function names(d::AbstractDependent)
   names(d, d.symbol)
 end
 
-function setmonitor!(d::AbstractDependent, monitor::Bool)
+function setmonitor!(d::AbstractFixedDependent, monitor::Bool)
   value = monitor ? Int[0] : Int[]
   setmonitor!(d, value)
 end
 
-function setmonitor!(d::AbstractDependent, monitor::Vector{Int})
+function setmonitor!(d::AbstractFixedDependent, monitor::Vector{Int})
   values = monitor
   n = length(unlist(d))
   if n > 0 && !isempty(monitor)
@@ -47,17 +47,23 @@ function setmonitor!(d::AbstractDependent, monitor::Vector{Int})
   d
 end
 
+function setmonitor!(d::AbstractElasticDependent, monitor::Vector{Int})
+    #TODO:
+    d.monitor = [1]
+    d
+end
+
 
 #################### Distribution Fallbacks ####################
 
 unlist(d::AbstractDependent, transform::Bool=false) =
   unlist(d, d.value, transform)
 
-unlist(d::AbstractDependent, x::Real, transform::Bool=false) = [x]
+unlist(d::AbstractFixedDependent, x::Real, transform::Bool=false) = [x]
 
-unlist(d::AbstractDependent, x::AbstractArray, transform::Bool=false) = vec(x)
+unlist(d::AbstractFixedDependent, x::AbstractArray, transform::Bool=false) = vec(x)
 
-relist(d::AbstractDependent, x::AbstractArray, transform::Bool=false) =
+relist(d::AbstractFixedDependent, x::AbstractArray, transform::Bool=false) =
   relistlength(d, x, transform)[1]
 
 logpdf(d::AbstractDependent, transform::Bool=false) = 0.0

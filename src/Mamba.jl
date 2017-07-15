@@ -82,7 +82,7 @@ module Mamba
   const DistributionStruct = Union{Distribution,
                                    Array{UnivariateDistribution},
                                    Array{MultivariateDistribution},
-                                   Dict{Any,MultivariateDistribution}}
+                                   Associative{Any,MultivariateDistribution}}
 
 
   #################### Dependent Types ####################
@@ -138,8 +138,11 @@ module Mamba
 
 
   const AbstractLogical = Union{ScalarLogical, ArrayLogical}
-  const AbstractStochastic = Union{ScalarStochastic, ArrayStochastic}
+  const AbstractStochastic = Union{ScalarStochastic, ArrayStochastic, DictStochastic}
   const AbstractDependent = Union{AbstractLogical, AbstractStochastic}
+
+  const AbstractFixedDependent = Union{ScalarLogical, ArrayLogical, ScalarStochastic, ArrayStochastic}
+  const AbstractElasticDependent = Union{DictStochastic} #TODO: DRY; use set difference.
 
 
   #################### Sampler Types ####################
@@ -175,12 +178,12 @@ module Mamba
       value::DictVariateVal
       tune::T
 
-      function DictSamplerVariate{T}(x::Dict, tune::T) where T<:SamplerTune
+      function DictSamplerVariate{T}(x::Associative, tune::T) where T<:SamplerTune
         v = new{typeof(first(keys(x))),T}(x, tune)
         validate(v)
       end
 
-      function DictSamplerVariate{T}(x::Dict, pargs...; kargs...) where T<:SamplerTune
+      function DictSamplerVariate{T}(x::Associative, pargs...; kargs...) where T<:SamplerTune
         value = x #convert(Vector{Float64}, x)
         DictSamplerVariate{T}(value, T(value, pargs...; kargs...))
       end
