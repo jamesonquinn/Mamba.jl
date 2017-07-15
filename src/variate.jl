@@ -1,6 +1,8 @@
 #################### Variate ####################
 
 #################### Conversions ####################
+getval(x::Any) = x
+getval(x::Variate) = x.value
 
 Base.convert(::Type{Bool}, v::ScalarVariate) = convert(Bool, v.value)
 Base.convert{T<:Integer}(::Type{T}, v::ScalarVariate) = convert(T, v.value)
@@ -24,7 +26,7 @@ end
 
 #################### Base Functions ####################
 
-Base.size(v::AbstractVariate) = size(v.value)
+Base.size(v::Variate) = size(v.value)
 
 Base.stride(v::ArrayVariate, k::Int) = stride(v.value, k)
 
@@ -61,12 +63,12 @@ Base.setindex!(v::ArrayVariate, x, inds::Int...) =
 
 #################### I/O ####################
 
-function Base.show(io::IO, v::AbstractVariate)
+function Base.show(io::IO, v::Variate)
   print(io, "Object of type \"$(summary(v))\"\n")
   show(io, v.value)
 end
 
-function Base.showcompact(io::IO, v::AbstractVariate)
+function Base.showcompact(io::IO, v::Variate)
   showcompact(io, v.value)
 end
 
@@ -78,10 +80,10 @@ function names(v::ScalarVariate, prefix)
 end
 
 function names(v::ArrayVariate, prefix)
-  offset = ndims(v) > 1 ? 1 : 2
+  offset = ndims(v.value) > 1 ? 1 : 2
   values = similar(v.value, AbstractString)
-  for i in 1:length(v)
-    s = string(ind2sub(size(v), i))
+  for i in 1:length(v.value)
+    s = string(ind2sub(size(v.value), i))
     values[i] = string(prefix, "[", s[2:(end - offset)], "]")
   end
   values

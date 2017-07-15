@@ -151,6 +151,15 @@ function Stochastic(d::Integer, f::Function,
   setmonitor!(s, monitor)
 end
 
+function Stochelastic(d::Integer, f::Function,
+                    monitor::Union{Bool, Vector{Int}}=true)
+  value = Dict{Tuple{fill(Int64,2)...},Float64}()
+  fx, src = modelfxsrc(depfxargs, f)
+  s = DictStochastic(value, :nothing, Int[], fx, src, Symbol[],
+                      NullUnivariateDistribution())
+  setmonitor!(s, monitor)
+end
+
 
 #################### Updating ####################
 

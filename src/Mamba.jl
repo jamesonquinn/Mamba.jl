@@ -54,25 +54,41 @@ module Mamba
 
   #################### Variate Types ####################
 
-  abstract type ScalarVariate <: Real end
-  abstract type ArrayVariate{N} <: DenseArray{Float64, N} end
+  const ScalarVariateVal = Real
+  const ArrayVariateVal{N} = DenseArray{V, N} where V <: ScalarVariateVal
+  const DictVariateVal{K} = Associative{K, V} where V <: ScalarVariateVal #In the future, this will be optimized.
+        #For instance, if K is Tuple{Symbol,Int64,Int64}, then DictVariateVal{K}
+        #could be Dict{Symbol,Array{Array{Float64,1},1}}
 
-  const AbstractVariate = Union{ScalarVariate, ArrayVariate}
-  const VectorVariate = ArrayVariate{1}
-  const MatrixVariate = ArrayVariate{2}
 
+  const AbstractVariateVal = Union{ScalarVariateVal, ArrayVariateVal, DictVariateVal}
+  const VectorVariateVal = ArrayVariateVal{1,V} where V <: ScalarVariateVal
+  const MatrixVariateVal = ArrayVariateVal{2,V} where V <: ScalarVariateVal
+        #TODO: Why do I have to qualify these with "where" when ArrayVariateVal is already so qualified? Who knows, who cares for now.
+
+  abstract type Variate{V<:AbstractVariateVal} end
+
+  const ScalarVariate = Variate{ScalarVariateVal}
+  const ArrayVariate{N} = Variate{ArrayVariateVal{N}} #where V <: ScalarVariateVal
+  const DictVariate{K} = Variate{DictVariateVal{K}} #where V <: ScalarVariateVal
+  const VectorVariate = Variate{VectorVariateVal} #where V <: ScalarVariateVal
+  const MatrixVariate = Variate{MatrixVariateVal} #where V <: ScalarVariateVal
+   #TODO: more redundant qualification, don't even know if it's necessary
+
+  const ConcreteVectorVariateVal = Vector{Float64}
 
   #################### Distribution Types ####################
 
   const DistributionStruct = Union{Distribution,
                                    Array{UnivariateDistribution},
-                                   Array{MultivariateDistribution}}
+                                   Array{MultivariateDistribution},
+                                   Dict{Any,MultivariateDistribution}}
 
 
   #################### Dependent Types ####################
 
-  type ScalarLogical <: ScalarVariate
-    value::Float64
+  type ScalarLogical <: Variate{ScalarVariateVal}
+    value::ScalarVariateVal
     symbol::Symbol
     monitor::Vector{Int}
     eval::Function
@@ -80,8 +96,8 @@ module Mamba
     targets::Vector{Symbol}
   end
 
-  type ArrayLogical{N} <: ArrayVariate{N}
-    value::Array{Float64, N}
+  type ArrayLogical{N} <: Variate{ArrayVariateVal{N}}
+    value::ArrayVariateVal{N}
     symbol::Symbol
     monitor::Vector{Int}
     eval::Function
@@ -89,8 +105,8 @@ module Mamba
     targets::Vector{Symbol}
   end
 
-  type ScalarStochastic <: ScalarVariate
-    value::Float64
+  type ScalarStochastic <: Variate{ScalarVariateVal}
+    value::ScalarVariateVal
     symbol::Symbol
     monitor::Vector{Int}
     eval::Function
@@ -99,8 +115,8 @@ module Mamba
     distr::UnivariateDistribution
   end
 
-  type ArrayStochastic{N} <: ArrayVariate{N}
-    value::Array{Float64, N}
+  type ArrayStochastic{N} <: Variate{ArrayVariateVal{N}}
+    value::ArrayVariateVal{N}
     symbol::Symbol
     monitor::Vector{Int}
     eval::Function
@@ -108,6 +124,18 @@ module Mamba
     targets::Vector{Symbol}
     distr::DistributionStruct
   end
+
+  type DictStochastic{K} <: Variate{DictVariateVal{K}}
+    value::DictVariateVal{K}
+    symbol::Symbol
+    monitor::Vector{Int}
+    eval::Function
+    sources::Vector{Symbol}
+    targets::Vector{Symbol}
+    distr::DistributionStruct
+  end
+
+
 
   const AbstractLogical = Union{ScalarLogical, ArrayLogical}
   const AbstractStochastic = Union{ScalarStochastic, ArrayStochastic}
@@ -126,8 +154,10 @@ module Mamba
 
   abstract type SamplerTune end
 
-  type SamplerVariate{T<:SamplerTune} <: VectorVariate
-    value::Vector{Float64}
+  abstract type AbstractSamplerVariate{V,T<:SamplerTune} <: Variate{V} end
+
+  type SamplerVariate{T<:SamplerTune} <: AbstractSamplerVariate{VectorVariateVal,T}
+    value::VectorVariateVal
     tune::T
 
     function SamplerVariate{T}(x::AbstractVector, tune::T) where T<:SamplerTune
@@ -141,6 +171,21 @@ module Mamba
     end
   end
 
+  type DictSamplerVariate{K,T<:SamplerTune} <: AbstractSamplerVariate{DictVariateVal{K},T}
+      value::DictVariateVal
+      tune::T
+
+      function DictSamplerVariate{T}(x::Dict, tune::T) where T<:SamplerTune
+        v = new{typeof(first(keys(x))),T}(x, tune)
+        validate(v)
+      end
+
+      function DictSamplerVariate{T}(x::Dict, pargs...; kargs...) where T<:SamplerTune
+        value = x #convert(Vector{Float64}, x)
+        DictSamplerVariate{T}(value, T(value, pargs...; kargs...))
+      end
+  end
+
 
   #################### Model Types ####################
 
@@ -149,20 +194,26 @@ module Mamba
     keys::Vector{Symbol}
   end
 
-  type ModelState
-    value::Vector{Float64}
+  type AbstractModelState{StateType <: AbstractVariateVal}
+    value::StateType
     tune::Vector{Any}
   end
 
-  type Model
+  type AbstractModel{StateType <: AbstractVariateVal}
     nodes::Dict{Symbol, Any}
     samplers::Vector{Sampler}
-    states::Vector{ModelState}
+    states::Vector{AbstractModelState{StateType}}
     iter::Int
     burnin::Int
     hasinputs::Bool
     hasinits::Bool
   end
+
+  const Model = AbstractModel{ArrayVariateVal}
+
+  const ModelState = AbstractModelState{ArrayVariateVal}
+
+  const ElasticModel = AbstractModel{DictVariateVal}
 
 
   #################### Chains Type ####################
@@ -235,7 +286,7 @@ module Mamba
   include("samplers/slice.jl")
   include("samplers/slicesimplex.jl")
 
-  include("maxpost/maxpost.jl")
+  #include("maxpost/maxpost.jl")
 
 
   #################### Exports ####################
@@ -245,7 +296,7 @@ module Mamba
     AbstractDependent,
     AbstractLogical,
     AbstractStochastic,
-    AbstractVariate,
+    Variate,
     ArrayLogical,
     ArrayStochastic,
     ArrayVariate,

@@ -118,6 +118,10 @@ function relist{T<:Real}(block::SamplingBlock, x::AbstractArray{T})
   relist(block.model, x, block.index, block.transform)
 end
 
+function relist{V<:AbstractArray{T} where T<:Real}(block::SamplingBlock, x::Variate{V})
+  relist(block.model, x.value, block.index, block.transform)
+end
+
 
 #################### Auxiliary Functions ####################
 

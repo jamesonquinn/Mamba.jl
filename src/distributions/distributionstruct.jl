@@ -19,6 +19,8 @@ unlist_sub(d::UnivariateDistribution, X::AbstractArray) = vec(X)
 
 unlist_sub(D::Array{UnivariateDistribution}, X::AbstractArray) = vec(X)
 
+unlist_sub(D::Dict{UnivariateDistribution}, X::Dict) = X #Dict{typeof(first(keys(X))),Int64}(X)
+
 function unlist_sub(D::Array{MultivariateDistribution}, X::AbstractArray)
   y = similar(X, length(X))
   offset = 0
@@ -53,21 +55,21 @@ relistlength_sub(d::Distribution, s::AbstractStochastic, x::AbstractArray) =
 
 function relistlength_sub(d::UnivariateDistribution, s::ArrayStochastic,
                           X::AbstractArray)
-  n = length(s)
-  value = reshape(X[1:n], size(s))
+  n = length(s.value)
+  value = reshape(X[1:n], size(s.value))
   (value, n)
 end
 
 function relistlength_sub(D::Array{UnivariateDistribution}, s::ArrayStochastic,
                           X::AbstractArray)
-  n = length(s)
-  value = reshape(X[1:n], size(s))
+  n = length(s.value)
+  value = reshape(X[1:n], size(s.value))
   (value, n)
 end
 
 function relistlength_sub(D::Array{MultivariateDistribution},
                           s::ArrayStochastic, X::AbstractArray)
-  Y = similar(X, size(s))
+  Y = similar(X, size(s.value))
   offset = 0
   for sub in CartesianRange(size(D))
     n = length(D[sub])

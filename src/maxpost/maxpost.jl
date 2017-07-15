@@ -3,6 +3,9 @@ using Optim
 using ForwardDiff
 using Mamba
 
+import ForwardDiff:
+        Dual
+        
 import Distributions:
         logpdf
 

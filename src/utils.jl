@@ -35,7 +35,8 @@ function modelexprsrc(f::Function, literalargs::Vector{Tuple{Symbol, DataType}})
 
   modelargs = Array{Any}(n)
   for i in nodeinds
-    modelargs[i] = Expr(:ref, :model, QuoteNode(fkeys[i]))
+    modelargs[i] = Expr(:call, :getval,
+                        Expr(:ref, :model, QuoteNode(fkeys[i]))) #getval(model[fkey])
   end
   for i in literalinds
     modelargs[i] = fkeys[i]

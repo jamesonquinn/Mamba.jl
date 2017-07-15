@@ -18,7 +18,7 @@ graph MCMC {
 
     AbstractStochastic [label = "{AbstractStochastic|+ distr\l}", pos="495, 425"]
 
-    AbstractVariate [label = "{AbstractVariate|+ value\l}", pos="230, 590"]
+    Variate [label = "{Variate|+ value\l}", pos="230, 590"]
 
     ArrayLogical [label = "{ArrayLogical\{N\}}", pos="125, 515"]
 
@@ -52,8 +52,8 @@ graph MCMC {
     AbstractLogical -- ScalarLogical [arrowtail = empty]
     AbstractStochastic -- ArrayStochastic [arrowtail = empty]
     AbstractStochastic -- ScalarStochastic [arrowtail = empty]
-    AbstractVariate -- ArrayVariate [arrowtail = empty]
-    AbstractVariate -- ScalarVariate [arrowtail = empty]
+    Variate -- ArrayVariate [arrowtail = empty]
+    Variate -- ScalarVariate [arrowtail = empty]
     ArrayVariate -- ArrayLogical [arrowtail = empty]
     ArrayVariate -- ArrayStochastic [arrowtail = empty]
     ScalarVariate -- ScalarLogical [arrowtail = empty]

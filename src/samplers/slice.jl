@@ -33,7 +33,7 @@ validate{F<:SliceForm}(v::SamplerVariate{SliceTune{F}}) =
 validate{F<:SliceForm}(v::SamplerVariate{SliceTune{F}}, width::Float64) = v
 
 function validate{F<:SliceForm}(v::SamplerVariate{SliceTune{F}}, width::Vector)
-  n = length(v)
+  n = length(v.value)
   length(width) == n ||
     throw(ArgumentError("length(width) differs from variate length $n"))
   v
@@ -64,25 +64,25 @@ sample!(v::Union{SliceUnivariate, SliceMultivariate}) = sample!(v, v.tune.logf)
 function sample!(v::SliceUnivariate, logf::Function)
   logf0 = logf(v.value)
 
-  n = length(v)
-  lower = v - v.tune.width .* rand(n)
+  n = length(v.value)
+  lower = v.value - v.tune.width .* rand(n)
   upper = lower + v.tune.width
 
   for i in 1:n
     p0 = logf0 + log(rand())
 
-    x = v[i]
-    v[i] = rand(Uniform(lower[i], upper[i]))
+    x = v.value[i]
+    v.value[i] = rand(Uniform(lower[i], upper[i]))
     while true
       logf0 = logf(v.value)
       logf0 < p0 || break
-      value = v[i]
+      value = v.value[i]
       if value < x
         lower[i] = value
       else
         upper[i] = value
       end
-      v[i] = rand(Uniform(lower[i], upper[i]))
+      v.value[i] = rand(Uniform(lower[i], upper[i]))
     end
   end
 
@@ -93,15 +93,15 @@ end
 function sample!(v::SliceMultivariate, logf::Function)
   p0 = logf(v.value) + log(rand())
 
-  n = length(v)
-  lower = v - v.tune.width .* rand(n)
+  n = length(v.value)
+  lower = v.value - v.tune.width .* rand(n)
   upper = lower + v.tune.width
 
   x = v.tune.width .* rand(n) + lower
   while logf(x) < p0
     for i in 1:n
       value = x[i]
-      if value < v[i]
+      if value < v.value[i]
         lower[i] = value
       else
         upper[i] = value
@@ -109,7 +109,7 @@ function sample!(v::SliceMultivariate, logf::Function)
       x[i] = rand(Uniform(lower[i], upper[i]))
     end
   end
-  v[:] = x
+  v.value[:] = x
 
   v
 end
