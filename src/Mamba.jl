@@ -55,13 +55,13 @@ module Mamba
   #################### Variate Types ####################
 
   const ScalarVariateVal = Real
-  const ArrayVariateVal{N} = DenseArray{V, N} where V <: ScalarVariateVal
-  const DictVariateVal{K} = Associative{K, V} where V <: ScalarVariateVal #In the future, this will be optimized.
+  const ArrayVariateVal{N,V} = DenseArray{V, N} where V <: ScalarVariateVal
+  const DictVariateVal{K,V} = Associative{K, V} where V <: ScalarVariateVal #In the future, this will be optimized.
         #For instance, if K is Tuple{Symbol,Int64,Int64}, then DictVariateVal{K}
         #could be Dict{Symbol,Array{Array{Float64,1},1}}
 
 
-  const AbstractVariateVal = Union{ScalarVariateVal, ArrayVariateVal, DictVariateVal}
+  const AbstractVariateVal{V<:ScalarVariateVal} = Union{V, (ArrayVariateVal{XX,V} where XX), (DictVariateVal{XX,V} where XX)}
   const VectorVariateVal = ArrayVariateVal{1,V} where V <: ScalarVariateVal
   const MatrixVariateVal = ArrayVariateVal{2,V} where V <: ScalarVariateVal
         #TODO: Why do I have to qualify these with "where" when ArrayVariateVal is already so qualified? Who knows, who cares for now.
@@ -75,7 +75,6 @@ module Mamba
   const MatrixVariate = Variate{MatrixVariateVal} #where V <: ScalarVariateVal
    #TODO: more redundant qualification, don't even know if it's necessary
 
-  const ConcreteVectorVariateVal = Vector{Float64}
 
   #################### Distribution Types ####################
 
@@ -84,6 +83,8 @@ module Mamba
                                    Array{MultivariateDistribution},
                                    Associative{Any,MultivariateDistribution}}
 
+
+  #################### Dependent Types ####################
 
   #################### Dependent Types ####################
 
@@ -143,6 +144,7 @@ module Mamba
 
   const AbstractFixedDependent = Union{ScalarLogical, ArrayLogical, ScalarStochastic, ArrayStochastic}
   const AbstractElasticDependent = Union{DictStochastic} #TODO: DRY; use set difference.
+  const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
 
 
   #################### Sampler Types ####################

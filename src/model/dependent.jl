@@ -196,24 +196,24 @@ end
 
 #################### Distribution Methods ####################
 
-function unlist(s::AbstractStochastic, transform::Bool=false)
+function unlist(s::AbstractFixedStochastic, transform::Bool=false)
   unlist(s, s.value, transform)
 end
 
-function unlist(s::AbstractStochastic, x::Real, transform::Bool=false)
+function unlist(s::AbstractFixedStochastic, x::Real, transform::Bool=false)
   unlist(s, [x], transform)
 end
 
-function unlist(s::AbstractStochastic, x::AbstractArray, transform::Bool=false)
+function unlist(s::AbstractFixedStochastic, x::AbstractArray, transform::Bool=false)
   transform ? unlist_sub(s.distr, link_sub(s.distr, x)) :
               unlist_sub(s.distr, x)
 end
 
-function relist(s::AbstractStochastic, x::AbstractArray, transform::Bool=false)
+function relist(s::AbstractFixedStochastic, x::AbstractArray, transform::Bool=false)
   relistlength(s, x, transform)[1]
 end
 
-function relistlength(s::AbstractStochastic, x::AbstractArray,
+function relistlength(s::AbstractFixedStochastic, x::AbstractArray,
                       transform::Bool=false)
   value, n = relistlength_sub(s.distr, s, x)
   (transform ? invlink_sub(s.distr, value) : value, n)
