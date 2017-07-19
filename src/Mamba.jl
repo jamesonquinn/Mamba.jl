@@ -84,7 +84,16 @@ module Mamba
                                    Associative{Any,MultivariateDistribution}}
 
 
-  #################### Dependent Types ####################
+  #################### Concrete DictVariateVal Types ####################
+
+  type SymDictVariateVal{V} <: DictVariateVal{Tuple,V}
+      vals::DictVariateVal{Symbol,Union{V,DictVariateVal{Tuple,V}}}
+  end
+
+  type VecDictVariateVal{V} <: DictVariateVal{Tuple,V}
+      vals::Vector{Union{V,DictVariateVal{Tuple,V}}}
+  end
+
 
   #################### Dependent Types ####################
 
@@ -138,13 +147,15 @@ module Mamba
 
 
 
-  const AbstractLogical = Union{ScalarLogical, ArrayLogical}
-  const AbstractStochastic = Union{ScalarStochastic, ArrayStochastic, DictStochastic}
-  const AbstractDependent = Union{AbstractLogical, AbstractStochastic}
 
-  const AbstractFixedDependent = Union{ScalarLogical, ArrayLogical, ScalarStochastic, ArrayStochastic}
-  const AbstractElasticDependent = Union{DictStochastic} #TODO: DRY; use set difference.
-  const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
+const AbstractLogical = Union{ScalarLogical, ArrayLogical}
+const AbstractStochastic = Union{ScalarStochastic, ArrayStochastic, DictStochastic}
+const AbstractDependent = Union{AbstractLogical, AbstractStochastic}
+
+const AbstractFixedDependent = Union{ScalarLogical, ArrayLogical, ScalarStochastic, ArrayStochastic}
+const AbstractElasticDependent = Union{DictStochastic}
+const AbstractElasticDependent = Union{DictStochastic} #TODO: DRY; use set difference.
+const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
 
 
   #################### Sampler Types ####################

@@ -59,12 +59,17 @@ end
 unlist(d::AbstractDependent, transform::Bool=false) =
   unlist(d, d.value, transform)
 
-unlist(d::AbstractFixedDependent, x::Real, transform::Bool=false) = [x]
+unlist(d::AbstractDependent, x::Real, transform::Bool=false) = [x]
 
-unlist(d::AbstractFixedDependent, x::AbstractArray, transform::Bool=false) = vec(x)
+unlist(d::AbstractDependent, x::AbstractArray, transform::Bool=false) = vec(x)
+
+unlist(d::AbstractElasticDependent, x::Associative, transform::Bool=false) = x
 
 relist(d::AbstractFixedDependent, x::AbstractArray, transform::Bool=false) =
   relistlength(d, x, transform)[1]
+
+relist(d::AbstractElasticDependent, x::Associative, transform::Bool=false) =
+  x
 
 logpdf(d::AbstractDependent, transform::Bool=false) = 0.0
 
@@ -91,6 +96,14 @@ function Logical(d::Integer, f::Function,
   fx, src = modelfxsrc(depfxargs, f)
   l = ArrayLogical(value, :nothing, Int[], fx, src, Symbol[])
   setmonitor!(l, monitor)
+end
+
+function getindex(X::DictVariateVal,i::Tuple)
+    if length(i) == 1
+        return X[i[1]]
+    else
+        return X[i[1]][i[2:end]]
+    end
 end
 
 
