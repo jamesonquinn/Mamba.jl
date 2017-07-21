@@ -1,5 +1,9 @@
 #################### Core Model Functionality ####################
 
+nodetype{VT}(x::AbstractModel{VT}) = VT
+nodetype(x::AbstractFixedDependent) = ArrayVariateVal
+nodetype(x::DictVariateVal) = DictVariateVal
+
 #################### Constructors ####################
 
 function Model(; iter::Integer=0, burnin::Integer=0,
@@ -12,7 +16,7 @@ function Model(; iter::Integer=0, burnin::Integer=0,
     node.symbol = key
     nodedict[key] = node
   end
-  m = Model(nodedict, Sampler[], ModelState[], iter, burnin, false, false)
+  m = AbstractModel{nodetype(nodes[1][2])}(nodedict, Sampler[], ModelState[], iter, burnin, false, false)
   dag = ModelGraph(m)
   dependentkeys = keys(m, :dependent)
   terminalkeys = keys(m, :stochastic)

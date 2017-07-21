@@ -2,7 +2,7 @@
 
 const depfxargs = [(:model, Mamba.Model)]
 
-
+#valtype{VT}(x::AbstractDependent{VT}) = VT
 #################### Base Methods ####################
 
 function Base.show(io::IO, d::AbstractDependent)

@@ -4,7 +4,7 @@ module Mamba
 
   #################### Imports ####################
 
-  import Base: cor, dot
+  import Base: cor, dot, valtype, getindex
   import Base.LinAlg: Cholesky
   import Calculus: gradient
   import Compose: Context, context, cm, gridstack, inch, MeasureOrNumber, mm,
@@ -97,8 +97,8 @@ module Mamba
 
   #################### Dependent Types ####################
 
-  type ScalarLogical <: Variate{ScalarVariateVal}
-    value::ScalarVariateVal
+  type ScalarLogical{VT} <: Variate{VT}
+    value::VT
     symbol::Symbol
     monitor::Vector{Int}
     eval::Function
@@ -106,8 +106,8 @@ module Mamba
     targets::Vector{Symbol}
   end
 
-  type ArrayLogical{N} <: Variate{ArrayVariateVal{N}}
-    value::ArrayVariateVal{N}
+  type ArrayLogical{N,VT} <: Variate{ArrayVariateVal{N,VT}}
+    value::ArrayVariateVal{N,VT}
     symbol::Symbol
     monitor::Vector{Int}
     eval::Function
@@ -115,8 +115,8 @@ module Mamba
     targets::Vector{Symbol}
   end
 
-  type ScalarStochastic <: Variate{ScalarVariateVal}
-    value::ScalarVariateVal
+  type ScalarStochastic{VT} <: Variate{VT}
+    value::VT
     symbol::Symbol
     monitor::Vector{Int}
     eval::Function
@@ -125,8 +125,8 @@ module Mamba
     distr::UnivariateDistribution
   end
 
-  type ArrayStochastic{N} <: Variate{ArrayVariateVal{N}}
-    value::ArrayVariateVal{N}
+  type ArrayStochastic{N,VT} <: Variate{ArrayVariateVal{N,VT}}
+    value::ArrayVariateVal{N,VT}
     symbol::Symbol
     monitor::Vector{Int}
     eval::Function
@@ -135,8 +135,8 @@ module Mamba
     distr::DistributionStruct
   end
 
-  type DictStochastic{K} <: Variate{DictVariateVal{K}}
-    value::DictVariateVal{K}
+  type DictStochastic{K,VT} <: Variate{DictVariateVal{K,VT}}
+    value::DictVariateVal{K,VT}
     symbol::Symbol
     monitor::Vector{Int}
     eval::Function
@@ -148,8 +148,8 @@ module Mamba
 
 
 
-const AbstractLogical = Union{ScalarLogical, ArrayLogical}
-const AbstractStochastic = Union{ScalarStochastic, ArrayStochastic, DictStochastic}
+const AbstractLogical{VT} = Union{ScalarLogical{VT}, (ArrayLogical{N,VT} where N)}
+const AbstractStochastic{VT} = Union{ScalarStochastic{VT}, (ArrayStochastic{N,VT} where N), (DictStochastic{K,VT} where K)}
 const AbstractDependent = Union{AbstractLogical, AbstractStochastic}
 
 const AbstractFixedDependent = Union{ScalarLogical, ArrayLogical, ScalarStochastic, ArrayStochastic}
@@ -319,7 +319,7 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
     Chains,
     Logical,
     MatrixVariate,
-    Model,
+    Model, AbstractModel, ElasticModel,
     ModelChains,
     Sampler,
     SamplerTune,
