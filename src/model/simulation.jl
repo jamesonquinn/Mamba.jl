@@ -129,6 +129,10 @@ function unlist(m::ElasticModel, monitoronly::Bool)
   SymDictVariateVal(k => f(k) for k in keys(m, :dependent))
 end
 
+function unlist(m::Model, nodekeys::Vector{Symbol}, transform::Bool=false)
+  vcat(map(key -> unlist(m[key], transform), nodekeys)...)
+end
+
 function unlist(m::ElasticModel, nodekeys::Vector{Symbol}, transform::Bool=false)
   SymDictVariateVal(key => unlist(m[key], transform) for key in nodekeys)
 end

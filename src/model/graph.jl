@@ -1,6 +1,6 @@
 #################### Model Graph ####################
 
-function ModelGraph(m::Model)
+function ModelGraph(m::AbstractModel)
   allkeys = keys(m, :all)
   g = DiGraph(length(allkeys))
   lookup = Dict(allkeys[i] => i for i in 1:length(allkeys))
@@ -18,7 +18,7 @@ end
 
 #################### Display ####################
 
-function draw(m::Model; filename::AbstractString="")
+function draw(m::AbstractModel; filename::AbstractString="")
   dot = graph2dot(m)
   if length(filename) == 0
     print(dot)
@@ -32,9 +32,9 @@ function draw(m::Model; filename::AbstractString="")
   end
 end
 
-graph(m::Model) = ModelGraph(m)
+graph(m::AbstractModel) = ModelGraph(m)
 
-function graph2dot(m::Model)
+function graph2dot(m::AbstractModel)
   dag = ModelGraph(m)
   io = IOBuffer()
   write(io, "digraph MambaModel {\n")
@@ -102,7 +102,7 @@ function gettargets(dag::ModelGraph, v::Int, terminalkeys::Vector{Symbol})
   values
 end
 
-function tsort(m::Model)
+function tsort(m::AbstractModel)
   dag = ModelGraph(m)
   dag.keys[topological_sort_by_dfs(dag.graph)]
 end

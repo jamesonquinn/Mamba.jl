@@ -4,7 +4,8 @@ module Mamba
 
   #################### Imports ####################
 
-  import Base: cor, dot, valtype, getindex
+  import Base: cor, dot, valtype, getindex, length, keys, setindex!,
+         start, next, done
   import Base.LinAlg: Cholesky
   import Calculus: gradient
   import Compose: Context, context, cm, gridstack, inch, MeasureOrNumber, mm,
@@ -55,24 +56,24 @@ module Mamba
   #################### Variate Types ####################
 
   const ScalarVariateVal = Real
-  const ArrayVariateVal{N,V} = DenseArray{V, N} where V <: ScalarVariateVal
-  const DictVariateVal{K,V} = Associative{K, V} where V <: ScalarVariateVal #In the future, this will be optimized.
+  const ArrayVariateVal{N,VT<: ScalarVariateVal} = DenseArray{VT, N}
+  const DictVariateVal{K,VT<: ScalarVariateVal} = Associative{K, VT} #In the future, this will be optimized.
         #For instance, if K is Tuple{Symbol,Int64,Int64}, then DictVariateVal{K}
         #could be Dict{Symbol,Array{Array{Float64,1},1}}
 
 
   const AbstractVariateVal{V<:ScalarVariateVal} = Union{V, (ArrayVariateVal{XX,V} where XX), (DictVariateVal{XX,V} where XX)}
-  const VectorVariateVal = ArrayVariateVal{1,V} where V <: ScalarVariateVal
-  const MatrixVariateVal = ArrayVariateVal{2,V} where V <: ScalarVariateVal
+  const VectorVariateVal{V<: ScalarVariateVal} = ArrayVariateVal{1,V}
+  const MatrixVariateVal{V<: ScalarVariateVal} = ArrayVariateVal{2,V}
         #TODO: Why do I have to qualify these with "where" when ArrayVariateVal is already so qualified? Who knows, who cares for now.
 
   abstract type Variate{V<:AbstractVariateVal} end
 
-  const ScalarVariate = Variate{ScalarVariateVal}
-  const ArrayVariate{N} = Variate{ArrayVariateVal{N}} #where V <: ScalarVariateVal
-  const DictVariate{K} = Variate{DictVariateVal{K}} #where V <: ScalarVariateVal
-  const VectorVariate = Variate{VectorVariateVal} #where V <: ScalarVariateVal
-  const MatrixVariate = Variate{MatrixVariateVal} #where V <: ScalarVariateVal
+  const ScalarVariate{VT<:ScalarVariateVal} = Variate{VT}
+  const ArrayVariate{N,VT<:ScalarVariateVal,V<:ArrayVariateVal{N,VT}} = Variate{V}
+  const DictVariate{K,VT<:ScalarVariateVal,V<:DictVariateVal{K,VT}} = Variate{V}
+  const VectorVariate{VT<:VectorVariateVal} = Variate{VT}
+  const MatrixVariate{VT<:MatrixVariateVal} = Variate{VT}
    #TODO: more redundant qualification, don't even know if it's necessary
 
 
@@ -85,14 +86,22 @@ module Mamba
 
 
   #################### Concrete DictVariateVal Types ####################
+  abstract type NestedDictVariateVal{VT} <: DictVariateVal{Tuple,VT} end
 
-  type SymDictVariateVal{V} <: DictVariateVal{Tuple,V}
-      vals::DictVariateVal{Symbol,Union{V,DictVariateVal{Tuple,V}}}
+  type SymDictVariateVal{VT} <: NestedDictVariateVal{VT}
+      vals::Dict{Symbol,Union{VT,NestedDictVariateVal}}
   end
 
-  type VecDictVariateVal{V} <: DictVariateVal{Tuple,V}
-      vals::Vector{Union{V,DictVariateVal{Tuple,V}}}
+  type VecDictVariateVal{VT} <: NestedDictVariateVal{VT}
+      vals::Vector{Union{VT,NestedDictVariateVal}}
+      qqqq::Bool #TODO: remove
+
+      function VecDictVariateVal{VT}() where VT<:ScalarVariateVal
+        new{VT}(Vector{Union{VT,NestedDictVariateVal}}(),true)
+      end
   end
+
+  #const NestedDictVariateVal{VT} = Union{SymDictVariateVal{VT},VecDictVariateVal{VT}}
 
 
   #################### Dependent Types ####################
@@ -125,18 +134,22 @@ module Mamba
     distr::UnivariateDistribution
   end
 
-  type ArrayStochastic{N,VT} <: Variate{ArrayVariateVal{N,VT}}
-    value::ArrayVariateVal{N,VT}
+  type ArrayStochastic{N,VT<:ScalarVariateVal,V<:ArrayVariateVal{N,VT}} <: ArrayVariate{N,VT,V}
+    value::V
     symbol::Symbol
     monitor::Vector{Int}
     eval::Function
     sources::Vector{Symbol}
     targets::Vector{Symbol}
     distr::DistributionStruct
+    
+    function ArrayStochastic(value::ArrayVariateVal, symbol::Symbol, monitor, eval, sources, targets, distr)
+      new{ndims(value),valtype(value),typeof(value)}(value, symbol, monitor, eval, sources, targets, distr)
+    end
   end
 
-  type DictStochastic{K,VT} <: Variate{DictVariateVal{K,VT}}
-    value::DictVariateVal{K,VT}
+  type DictStochastic{K,VT<:ScalarVariateVal,V<:DictVariateVal{K,VT}} <: DictVariate{K,VT,V}
+    value::V
     symbol::Symbol
     monitor::Vector{Int}
     eval::Function
@@ -327,7 +340,7 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
     ScalarLogical,
     ScalarStochastic,
     ScalarVariate,
-    Stochastic,
+    Stochastic, Stochelastic,
     VectorVariate
 
   export

@@ -3,7 +3,66 @@
 const depfxargs = [(:model, Mamba.Model)]
 
 #valtype{VT}(x::AbstractDependent{VT}) = VT
+#NodeType{VT}(x::AbstractDependent{VT}) = VT
+keytype{K}(x::DictVariateVal{K}) = K
+#valtype{VT}(x::DictVariateVal{K,VT} where K) = VT #qqqq apparently this is in Base already?
+
 #################### Base Methods ####################
+function start(nd::NestedDictVariateVal)
+  start(nd.vals)
+end
+
+function next(nd::NestedDictVariateVal,state)
+  next(nd.vals,state)
+end
+
+function done(nd::NestedDictVariateVal,state)
+  done(nd.vals,state)
+end
+
+function keyvals(nd::SymDictVariateVal)
+  nd.vals
+end
+
+function keyvals(nd::VecDictVariateVal)
+  [Pair(i,nd.vals[i]) for i in 1:length(nd.vals)]
+end
+
+function keys(nd::NestedDictVariateVal)
+  mykeys = Vector{Tuple}()
+  print(string("keys:",string(nd.vals),"\n")) #qqqq
+  for kv in keyvals(nd) #TODO: refactor this as iterator using start, next, done
+    if typeof(kv[2]) <: ScalarVariateVal
+      append!(mykeys,[(kv[1],)])
+    else
+      append!(mykeys,[tuple(kv[1],k) for k in keys(kv[2])])
+    end
+  end
+  print(string("keys2:",string(mykeys),"\n")) #qqqq
+  mykeys
+end
+
+function length(nd::NestedDictVariateVal)
+  length(keys(nd))
+end
+
+function keys(ndd::AbstractElasticDependent)
+  keys(ndd.value)
+end
+
+function length(ndd::AbstractElasticDependent)
+  length(collect(keys(ndd)))
+end
+
+function ndims(ndd::AbstractElasticDependent)
+  k = keys(ndd)
+  if length(k) > 0
+    print(k)
+    return length(k[1])
+  else
+    return 1 #qqqq this is just a guess
+  end
+end
 
 function Base.show(io::IO, d::AbstractDependent)
   msg = string(ifelse(isempty(d.monitor), "An un", "A "),
@@ -33,6 +92,11 @@ function setmonitor!(d::AbstractFixedDependent, monitor::Bool)
   setmonitor!(d, value)
 end
 
+function setmonitor!(d::AbstractElasticDependent, monitor::Bool) #TODO: If this works, just consolidate with above
+  value = monitor ? Int[0] : Int[]
+  setmonitor!(d, value)
+end
+
 function setmonitor!(d::AbstractFixedDependent, monitor::Vector{Int})
   values = monitor
   n = length(unlist(d))
@@ -48,8 +112,7 @@ function setmonitor!(d::AbstractFixedDependent, monitor::Vector{Int})
 end
 
 function setmonitor!(d::AbstractElasticDependent, monitor::Vector{Int})
-    #TODO:
-    d.monitor = [1]
+    d.monitor = collect(1:ndims(d))
     d
 end
 
@@ -98,12 +161,35 @@ function Logical(d::Integer, f::Function,
   setmonitor!(l, monitor)
 end
 
-function getindex(X::DictVariateVal,i::Tuple)
-    if length(i) == 1
-        return X[i[1]]
-    else
-        return X[i[1]][i[2:end]]
+function getindex(X::NestedDictVariateVal,i::Tuple)
+  if length(i) == 1
+    return X.vals[i[1]]
+  else
+    return X.vals[i[1]][i[2:end]]
+  end
+end
+
+function ensureIndexReady(X::NestedDictVariateVal,i::Integer)
+  #generically, do nothing
+end
+
+function ensureIndexReady!(X::VecDictVariateVal,i::Integer)
+  l = length(X.vals)
+  if l<i
+    append!(X.vals,fill(NaN,i-l))
+  end
+end
+
+function setindex!(X::NestedDictVariateVal,v,i::Tuple)
+  ensureIndexReady!(X,i[1])
+  if length(i) == 1
+    X.vals[i[1]] = v
+  else
+    if !haskey(X.vals,i[1])
+      X.vals[i[1]] = VecDictVariateVal{typeof(v)}()
     end
+    X.vals[i[1]][i[2:end]] = v
+  end
 end
 
 
@@ -172,9 +258,12 @@ end
 
 function Stochelastic(d::Integer, f::Function,
                     monitor::Union{Bool, Vector{Int}}=true)
-  value = Dict{Tuple{fill(Int64,2)...},Float64}()
+
+  value = VecDictVariateVal{Float64}()
+  k = tuple(fill(1,d)...)
+  value[k] = NaN
   fx, src = modelfxsrc(depfxargs, f)
-  s = DictStochastic(value, :nothing, Int[], fx, src, Symbol[],
+  s = DictStochastic{keytype(value),valtype(value),typeof(value)}(value, :nothing, Int[], fx, src, Symbol[],
                       NullUnivariateDistribution())
   setmonitor!(s, monitor)
 end

@@ -2,7 +2,7 @@
 
 nodetype{VT}(x::AbstractModel{VT}) = VT
 nodetype(x::AbstractFixedDependent) = ArrayVariateVal
-nodetype(x::DictVariateVal) = DictVariateVal
+nodetype(x::AbstractElasticDependent) = DictVariateVal
 
 #################### Constructors ####################
 
@@ -33,10 +33,10 @@ end
 
 #################### Indexing ####################
 
-Base.getindex(m::Model, nodekey::Symbol) = m.nodes[nodekey]
+Base.getindex(m::AbstractModel, nodekey::Symbol) = m.nodes[nodekey]
 
 
-function Base.setindex!(m::Model, value, nodekey::Symbol)
+function Base.setindex!(m::AbstractModel, value, nodekey::Symbol)
   node = m[nodekey]
   if isa(node, AbstractDependent)
     node.value = value
@@ -45,21 +45,21 @@ function Base.setindex!(m::Model, value, nodekey::Symbol)
   end
 end
 
-function Base.setindex!(m::Model, values::Dict, nodekeys::Vector{Symbol})
+function Base.setindex!(m::AbstractModel, values::Dict, nodekeys::Vector{Symbol})
   for key in nodekeys
     m[key] = values[key]
   end
 end
 
-function Base.setindex!(m::Model, value, nodekeys::Vector{Symbol})
+function Base.setindex!(m::AbstractModel, value, nodekeys::Vector{Symbol})
   length(nodekeys) == 1 || throw(BoundsError())
   m[first(nodekeys)] = value
 end
 
 
-Base.keys(m::Model) = collect(keys(m.nodes))
+Base.keys(m::Model) = collect(keys(m.nodes)) #TODO: this is broken, should include node name in key for ElasticModel.
 
-function Base.keys(m::Model, ntype::Symbol, at...)
+function Base.keys(m::AbstractModel, ntype::Symbol, at...)#TODO: this may be broken, should include node name in key for ElasticModel?
   ntype == :block       ? keys_block(m, at...) :
   ntype == :all         ? keys_all(m) :
   ntype == :assigned    ? keys_assigned(m) :
@@ -75,7 +75,7 @@ function Base.keys(m::Model, ntype::Symbol, at...)
     throw(ArgumentError("unsupported node type $ntype"))
 end
 
-function keys_all(m::Model)
+function keys_all(m::AbstractModel)
   values = Symbol[]
   for key in keys(m)
     node = m[key]
@@ -87,7 +87,7 @@ function keys_all(m::Model)
   unique(values)
 end
 
-function keys_assigned(m::Model)
+function keys_assigned(m::AbstractModel)
   if m.hasinits
     values = keys(m)
   else
@@ -101,11 +101,11 @@ function keys_assigned(m::Model)
   values
 end
 
-function keys_block(m::Model, block::Integer=0)
+function keys_block(m::AbstractModel, block::Integer=0)
   block == 0 ? keys_block0(m) : m.samplers[block].params
 end
 
-function keys_block0(m::Model)
+function keys_block0(m::AbstractModel)
   values = Symbol[]
   for sampler in m.samplers
     append!(values, sampler.params)
@@ -113,7 +113,7 @@ function keys_block0(m::Model)
   unique(values)
 end
 
-function keys_dependent(m::Model)
+function keys_dependent(m::AbstractModel)
   values = Symbol[]
   for key in keys(m)
     if isa(m[key], AbstractDependent)
@@ -123,7 +123,7 @@ function keys_dependent(m::Model)
   intersect(tsort(m), values)
 end
 
-function keys_independent(m::Model)
+function keys_independent(m::AbstractModel)
   deps = Symbol[]
   for key in keys(m)
     if isa(m[key], AbstractDependent)
@@ -133,7 +133,7 @@ function keys_independent(m::Model)
   setdiff(keys(m, :all), deps)
 end
 
-function keys_logical(m::Model)
+function keys_logical(m::AbstractModel)
   values = Symbol[]
   for key in keys(m)
     if isa(m[key], AbstractLogical)
@@ -143,7 +143,7 @@ function keys_logical(m::Model)
   values
 end
 
-function keys_monitor(m::Model)
+function keys_monitor(m::AbstractModel)
   values = Symbol[]
   for key in keys(m)
     node = m[key]
@@ -154,7 +154,7 @@ function keys_monitor(m::Model)
   values
 end
 
-function keys_output(m::Model)
+function keys_output(m::AbstractModel)
   values = Symbol[]
   dag = ModelGraph(m)
   for v in vertices(dag.graph)
@@ -166,9 +166,9 @@ function keys_output(m::Model)
   values
 end
 
-keys_source(m::Model, nodekey::Symbol) = m[nodekey].sources
+keys_source(m::AbstractModel, nodekey::Symbol) = m[nodekey].sources
 
-function keys_source(m::Model, nodekeys::Vector{Symbol})
+function keys_source(m::AbstractModel, nodekeys::Vector{Symbol})
   values = Symbol[]
   for key in nodekeys
     append!(values, m[key].sources)
@@ -176,7 +176,7 @@ function keys_source(m::Model, nodekeys::Vector{Symbol})
   unique(values)
 end
 
-function keys_stochastic(m::Model)
+function keys_stochastic(m::AbstractModel)
   values = Symbol[]
   for key in keys(m)
     if isa(m[key], AbstractStochastic)
@@ -186,11 +186,11 @@ function keys_stochastic(m::Model)
   values
 end
 
-function keys_target(m::Model, block::Integer=0)
+function keys_target(m::AbstractModel, block::Integer=0)
   block == 0 ? keys_target0(m) : m.samplers[block].targets
 end
 
-function keys_target0(m::Model)
+function keys_target0(m::AbstractModel)
   values = Symbol[]
   for sampler in m.samplers
     append!(values, sampler.targets)
@@ -198,9 +198,9 @@ function keys_target0(m::Model)
   intersect(keys(m, :dependent), values)
 end
 
-keys_target(m::Model, nodekey::Symbol) = m[nodekey].targets
+keys_target(m::AbstractModel, nodekey::Symbol) = m[nodekey].targets
 
-function keys_target(m::Model, nodekeys::Vector{Symbol})
+function keys_target(m::AbstractModel, nodekeys::Vector{Symbol})
   values = Symbol[]
   for key in nodekeys
     append!(values, m[key].targets)
@@ -211,15 +211,15 @@ end
 
 #################### Display ####################
 
-function Base.show(io::IO, m::Model)
+function Base.show(io::IO, m::AbstractModel)
   showf(io, m, Base.show)
 end
 
-function Base.showall(io::IO, m::Model)
+function Base.showall(io::IO, m::AbstractModel)
   showf(io, m, Base.showall)
 end
 
-function showf(io::IO, m::Model, f::Function)
+function showf(io::IO, m::AbstractModel, f::Function)
   print(io, "Object of type \"$(summary(m))\"\n")
   width = displaysize()[2] - 1
   for node in keys(m)
@@ -232,7 +232,7 @@ end
 
 #################### Auxiliary Functions ####################
 
-function names(m::Model, monitoronly::Bool)
+function names(m::AbstractModel, monitoronly::Bool)
   values = AbstractString[]
   for key in keys(m, :dependent)
     nodenames = names(m, key)
@@ -242,12 +242,12 @@ function names(m::Model, monitoronly::Bool)
   values
 end
 
-function names(m::Model, nodekey::Symbol)
+function names(m::AbstractModel, nodekey::Symbol)
   node = m[nodekey]
   unlist(node, names(node))
 end
 
-function names(m::Model, nodekeys::Vector{Symbol})
+function names(m::AbstractModel, nodekeys::Vector{Symbol})
   values = AbstractString[]
   for key in nodekeys
     append!(values, names(m, key))

@@ -1,3 +1,12 @@
+if isdefined(:Mamba)
+    print("Reloading")
+    workspace()
+    #prec = __precompile__
+    #__precompile__ = (x) -> x
+    #include("/Users/chema/mydev/Mamba.jl/src/Mamba.jl")
+    #__precompile__ = prec
+end
+
 using Mamba
 
 ## Data
@@ -11,7 +20,7 @@ pumps[:N] = length(pumps[:y])
 ## Model Specification
 model = Model(
 
-  y = Stochastic(1,
+  y = Stochelastic(1,
     (theta, t, N) ->
       UnivariateDistribution[
         begin
@@ -23,7 +32,7 @@ model = Model(
     false
   ),
 
-  theta = Stochastic(1,
+  theta = Stochelastic(1,
     (alpha, beta) -> Gamma(alpha, 1 / beta),
     true
   ),
