@@ -57,7 +57,9 @@ function Base.setindex!(m::AbstractModel, value, nodekeys::Vector{Symbol})
 end
 
 
-Base.keys(m::Model) = collect(keys(m.nodes)) #TODO: this is broken, should include node name in key for ElasticModel.
+Base.keys(m::Model) = collect(keys(m.nodes))
+
+Base.keys(m::ElasticModel) = keys(m, :all) #TODO: Investigate. Why not just use this for AbstractModel? Why is the above version different?
 
 function Base.keys(m::AbstractModel, ntype::Symbol, at...)#TODO: this may be broken, should include node name in key for ElasticModel?
   ntype == :block       ? keys_block(m, at...) :
