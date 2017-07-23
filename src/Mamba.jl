@@ -4,7 +4,7 @@ module Mamba
 
   #################### Imports ####################
 
-  import Base: cor, dot, valtype, getindex, length, keys, setindex!,
+  import Base: cor, dot, valtype, getindex, get, length, keys, setindex!,
          start, next, done
   import Base.LinAlg: Cholesky
   import Calculus: gradient
@@ -86,18 +86,26 @@ module Mamba
 
 
   #################### Concrete DictVariateVal Types ####################
-  abstract type NestedDictVariateVal{VT} <: DictVariateVal{Tuple,VT} end
+  abstract type NestedDictVariateVal{VT<:ScalarVariateVal} <: DictVariateVal{Tuple,VT} end
 
   type SymDictVariateVal{VT} <: NestedDictVariateVal{VT}
-      vals::Dict{Symbol,Union{VT,NestedDictVariateVal}}
+      vals::Dict{Symbol,Union{VT,NestedDictVariateVal{VT}}}
   end
 
   type VecDictVariateVal{VT} <: NestedDictVariateVal{VT}
-      vals::Vector{Union{VT,NestedDictVariateVal}}
+      vals::Vector{Union{VT,NestedDictVariateVal{VT}}}
       qqqq::Bool #TODO: remove
 
       function VecDictVariateVal{VT}() where VT<:ScalarVariateVal
         new{VT}(Vector{Union{VT,NestedDictVariateVal}}(),true)
+      end
+
+      function VecDictVariateVal{VT}(x::Vector{VT}) where VT<:ScalarVariateVal
+        vdv = VecDictVariateVal{VT}()
+        for i in 1:length(x)
+          vdv[(i,)] = x[i]
+        end
+        vdv
       end
   end
 
@@ -142,7 +150,7 @@ module Mamba
     sources::Vector{Symbol}
     targets::Vector{Symbol}
     distr::DistributionStruct
-    
+
     function ArrayStochastic(value::ArrayVariateVal, symbol::Symbol, monitor, eval, sources, targets, distr)
       new{ndims(value),valtype(value),typeof(value)}(value, symbol, monitor, eval, sources, targets, distr)
     end

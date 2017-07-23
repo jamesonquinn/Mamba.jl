@@ -1,7 +1,14 @@
 #################### Dependent ####################
 
-const depfxargs = [(:model, Mamba.Model)]
+const depfxargs = [(:model, Mamba.AbstractModel)]
 
+valtype{VT<:ScalarVariateVal}(x::Type{VT}) = VT
+valtype{N,VT}(x::Type{ArrayVariateVal{N,VT}}) = VT
+valtype{N,VT}(x::Type{DictVariateVal{N,VT}}) = VT
+valtype{VT}(x::AbstractVariateVal{VT}) = valtype(typeof(x))
+valtype{V}(x::Variate{V}) = valtype(V)
+valtype{V}(x::Type{Variate{V}}) = valtype(V)
+valtype{V}(x::AbstractModel{V}) = valtype(V)
 #valtype{VT}(x::AbstractDependent{VT}) = VT
 #NodeType{VT}(x::AbstractDependent{VT}) = VT
 keytype{K}(x::DictVariateVal{K}) = K
@@ -161,11 +168,23 @@ function Logical(d::Integer, f::Function,
   setmonitor!(l, monitor)
 end
 
-function getindex(X::NestedDictVariateVal,i::Tuple)
+function get(X::NestedDictVariateVal,i::Tuple)
   if length(i) == 1
     return X.vals[i[1]]
   else
     return X.vals[i[1]][i[2:end]]
+  end
+end
+
+function get(X::NestedDictVariateVal,i::Tuple,default)
+  try
+    return get(X,i)
+  catch y
+    if isa(y, KeyError)
+      return default
+    else
+      rethrow(y)
+    end
   end
 end
 
@@ -271,8 +290,12 @@ end
 
 #################### Updating ####################
 
+function setinits!(s::AbstractStochastic, m::AbstractModel, x)
+  throw(ArgumentError("incompatible initial value for node : $(s.symbol)"))
+end
+
 function setinits!(s::ScalarStochastic, m::Model, x::Real)
-  s.value = convert(Float64, x)
+  s.value = convert(valtype(s), x)
   s.distr = s.eval(m)
   setmonitor!(s, s.monitor)
 end
@@ -286,9 +309,31 @@ function setinits!(s::ArrayStochastic, m::Model, x::DenseArray)
   setmonitor!(s, s.monitor)
 end
 
-function setinits!(s::AbstractStochastic, m::Model, x)
-  throw(ArgumentError("incompatible initial value for node : $(s.symbol)"))
+function setinits!(s::ScalarStochastic, m::ElasticModel, x::Real)
+  print(string("valtype is ",string(valtype(s))," and ",x,"\n\n\n"))
+  s.value = convert(valtype(s), x)
+  print(string("valtype222\n\n\n"))
+  s.distr = s.eval(m)
+  setmonitor!(s, s.monitor)
 end
+
+function setinits!(s::DictStochastic, m::ElasticModel, x::Real)
+  s.value = convert(VecDictVariateVal{valtype(s)}, [x])
+  s.distr = s.eval(m)
+  setmonitor!(s, s.monitor)
+end
+
+function setinits!(s::DictStochastic, m::ElasticModel, x)
+  print(string("valtype is ",string(valtype(s))," and ",x,"\n\n\n"))
+  vtype = valtype(s)
+  s.value = VecDictVariateVal{vtype}([vtype(xi) for xi in x])
+  s.distr = s.eval(m)
+  if !isa(s.distr, UnivariateDistribution) && dims(s) != dims(s.distr)
+    throw(DimensionMismatch("incompatible distribution for stochastic node"))
+  end
+  setmonitor!(s, s.monitor)
+end
+
 
 function update!(s::AbstractStochastic, m::Model)
   s.distr = s.eval(m)

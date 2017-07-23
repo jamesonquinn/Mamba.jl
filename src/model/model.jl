@@ -59,7 +59,7 @@ end
 
 Base.keys(m::Model) = collect(keys(m.nodes))
 
-Base.keys(m::ElasticModel) = keys(m, :all) #TODO: Investigate. Why not just use this for AbstractModel? Why is the above version different?
+Base.keys(m::ElasticModel) = keys(m.nodes) #TODO: Investigate. Why not just use this for AbstractModel? Why is the above version different?
 
 function Base.keys(m::AbstractModel, ntype::Symbol, at...)#TODO: this may be broken, should include node name in key for ElasticModel?
   ntype == :block       ? keys_block(m, at...) :
@@ -79,7 +79,7 @@ end
 
 function keys_all(m::AbstractModel)
   values = Symbol[]
-  for key in keys(m)
+  for key in keys(m.nodes)
     node = m[key]
     if isa(node, AbstractDependent)
       push!(values, key)
@@ -222,10 +222,10 @@ function Base.showall(io::IO, m::AbstractModel)
 end
 
 function showf(io::IO, m::AbstractModel, f::Function)
-  print(io, "Object of type \"$(summary(m))\"\n")
+  print(io, "Object of type \"$(summary(m))\"\n\n\n\n\n\n\n\n")
   width = displaysize()[2] - 1
   for node in keys(m)
-    print(io, string("-"^width, "\n", node, ":\n"))
+    print(io, string("-"^width, "\n\n\n\n\n\n\n\n", node, ":\n\n\n\n\n\n\n\n"))
     f(io, m[node])
     println(io)
   end

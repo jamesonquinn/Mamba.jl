@@ -24,7 +24,9 @@ model = Model(
     (theta, t, N) ->
       UnivariateDistribution[
         begin
-          lambda = theta[i] * t[i]
+          print(" qqqq\n\n\n")
+          print(theta," qqqq\n\n\n")
+          lambda = theta[(i,)] * t[(i,)]
           Poisson(lambda)
         end
         for i in 1:N

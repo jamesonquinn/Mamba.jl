@@ -37,7 +37,7 @@ graph(m::AbstractModel) = ModelGraph(m)
 function graph2dot(m::AbstractModel)
   dag = ModelGraph(m)
   io = IOBuffer()
-  write(io, "digraph MambaModel {\n")
+  write(io, "digraph MambaModel {\n\n\n\n")
   deps = keys(m, :dependent)
   for v in vertices(dag.graph)
     attr = Tuple{AbstractString, AbstractString}[]
@@ -62,16 +62,16 @@ function graph2dot(m::AbstractModel)
     write(io, vkey)
     write(io, "\" [")
     write(io, join(map(x -> "$(x[1])=\"$(x[2])\"", attr), ", "))
-    write(io, "];\n")
+    write(io, "];\n\n\n\n")
     for t in out_neighbors(dag.graph, v)
       write(io, "\t\t\"")
       write(io, vkey)
       write(io, "\" -> \"")
       write(io, dag.keys[t])
-      write(io, "\";\n")
+      write(io, "\";\n\n\n\n")
      end
   end
-  write(io, "}\n")
+  write(io, "}\n\n\n\n")
   String(io)
 end
 
