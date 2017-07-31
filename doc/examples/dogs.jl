@@ -94,7 +94,6 @@ setsamplers!(model, scheme)
     puts them into a structure of the same shape as fillable"
 function makeFiller(fillable, whichParts)
   partFillers = Function[]
-  print(typeof(partFillers))
   i = 1
   for part in whichParts
     function enclose(myI, myPart)

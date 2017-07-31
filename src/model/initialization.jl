@@ -20,9 +20,7 @@ end
 function setinits!(m::AbstractModel, inits::Vector{Dict{Symbol, Any}})
   n = length(inits)
   myStateType = AbstractModelState{nodetype(m)}
-  print("qqqq setinits! 1\n\n\n")
   m.states = Array{myStateType}(n)
-  print("qqqq setinits! 2\n\n\n")
   for i in n:-1:1
     setinits!(m, inits[i])
     m.states[i] = myStateType(unlist(m), deepcopy(gettune(m)))

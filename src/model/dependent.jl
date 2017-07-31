@@ -2,54 +2,79 @@
 
 const depfxargs = [(:model, Mamba.AbstractModel)]
 
-valtype{VT<:ScalarVariateVal}(x::Type{VT}) = VT
-valtype{N,VT}(x::Type{ArrayVariateVal{N,VT}}) = VT
-valtype{N,VT}(x::Type{DictVariateVal{N,VT}}) = VT
-valtype{VT}(x::AbstractVariateVal{VT}) = valtype(typeof(x))
-valtype{V}(x::Variate{V}) = valtype(V)
-valtype{V}(x::Type{Variate{V}}) = valtype(V)
-valtype{V}(x::AbstractModel{V}) = valtype(V)
-#valtype{VT}(x::AbstractDependent{VT}) = VT
-#NodeType{VT}(x::AbstractDependent{VT}) = VT
-keytype{K}(x::DictVariateVal{K}) = K
-#valtype{VT}(x::DictVariateVal{K,VT} where K) = VT #qqqq apparently this is in Base already?
+function myvaltype(x::Type{SVT}) where SVT<:ScalarVariateType
+  myvaltype(SVT,ScalarVariateType)
+end
+function myvaltype{SVT}(x::Type{SVT},::Type{ScalarVariateType})
+  SVT
+end
+function myvaltype{SVT}(x::VectorVariateVals{SVT})
+  SVT
+end
+function myvaltype{SVT}(x::DictVariateVals{SVT})
+  SVT
+end
+function myvaltype{VS}(x::Variate{VS})
+  myvaltype(VS)
+end
+function myvaltype(x::Type{X}) where X<:Variate
+  myvaltype(V,Variate)
+end
+function myvaltype{SVT}(x::Type{Variate{SVT}},::Type{Variate})
+  myvaltype(SVT,Variate)
+end
+function myvaltype{V}(x::AbstractModel{V})
+  myvaltype(V)
+end
+
+
+
+
+function myvaltype(x::Type{X}) where X<:ArrayVariateVals{SVT,N} where N where SVT <: ScalarVariateType
+  SVT
+end
+function myvaltype(x::Type{X}) where X<:DictVariateVals{SVT,N} where N where SVT <: ScalarVariateType
+  SVT
+end
+#myvaltype{VV}(x::AbstractDependent{VV}) = VV
+#NodeType{VV}(x::AbstractDependent{VV}) = VV
+keytype{K,SVT}(x::DictVariateVals{SVT,K}) = K
+#myvaltype{VV}(x::DictVariateVals{K,VV} where K) = VV #qqqq apparently this is in Base already?
 
 #################### Base Methods ####################
-function start(nd::NestedDictVariateVal)
+function start(nd::NestedDictVariateVals)
   start(nd.vals)
 end
 
-function next(nd::NestedDictVariateVal,state)
+function next(nd::NestedDictVariateVals,state)
   next(nd.vals,state)
 end
 
-function done(nd::NestedDictVariateVal,state)
+function done(nd::NestedDictVariateVals,state)
   done(nd.vals,state)
 end
 
-function keyvals(nd::SymDictVariateVal)
+function keyvals(nd::SymDictVariateVals)
   nd.vals
 end
 
-function keyvals(nd::VecDictVariateVal)
+function keyvals(nd::VecDictVariateVals)
   [Pair(i,nd.vals[i]) for i in 1:length(nd.vals)]
 end
 
-function keys(nd::NestedDictVariateVal)
+function keys(nd::NestedDictVariateVals)
   mykeys = Vector{Tuple}()
-  print(string("keys:",string(nd.vals),"\n")) #qqqq
   for kv in keyvals(nd) #TODO: refactor this as iterator using start, next, done
-    if typeof(kv[2]) <: ScalarVariateVal
+    if typeof(kv[2]) <: ScalarVariateType
       append!(mykeys,[(kv[1],)])
     else
       append!(mykeys,[tuple(kv[1],k) for k in keys(kv[2])])
     end
   end
-  print(string("keys2:",string(mykeys),"\n")) #qqqq
   mykeys
 end
 
-function length(nd::NestedDictVariateVal)
+function length(nd::NestedDictVariateVals)
   length(keys(nd))
 end
 
@@ -168,7 +193,7 @@ function Logical(d::Integer, f::Function,
   setmonitor!(l, monitor)
 end
 
-function get(X::NestedDictVariateVal,i::Tuple)
+function getindex(X::NestedDictVariateVals,i...)
   if length(i) == 1
     return X.vals[i[1]]
   else
@@ -176,36 +201,24 @@ function get(X::NestedDictVariateVal,i::Tuple)
   end
 end
 
-function get(X::NestedDictVariateVal,i::Tuple,default)
-  try
-    return get(X,i)
-  catch y
-    if isa(y, KeyError)
-      return default
-    else
-      rethrow(y)
-    end
-  end
-end
-
-function ensureIndexReady(X::NestedDictVariateVal,i::Integer)
+function ensureIndexReady!(X::NestedDictVariateVals,i::Integer)
   #generically, do nothing
 end
 
-function ensureIndexReady!(X::VecDictVariateVal,i::Integer)
+function ensureIndexReady!(X::VecDictVariateVals,i::Integer)
   l = length(X.vals)
   if l<i
     append!(X.vals,fill(NaN,i-l))
   end
 end
 
-function setindex!(X::NestedDictVariateVal,v,i::Tuple)
+function setindex!(X::NestedDictVariateVals,v,i...)
   ensureIndexReady!(X,i[1])
   if length(i) == 1
     X.vals[i[1]] = v
   else
     if !haskey(X.vals,i[1])
-      X.vals[i[1]] = VecDictVariateVal{typeof(v)}()
+      X.vals[i[1]] = VecDictVariateVals{typeof(v)}()
     end
     X.vals[i[1]][i[2:end]] = v
   end
@@ -278,11 +291,11 @@ end
 function Stochelastic(d::Integer, f::Function,
                     monitor::Union{Bool, Vector{Int}}=true)
 
-  value = VecDictVariateVal{Float64}()
-  k = tuple(fill(1,d)...)
-  value[k] = NaN
+  value = VecDictVariateVals{Float64}()
+  k = fill(1,d)
+  value[k...] = NaN
   fx, src = modelfxsrc(depfxargs, f)
-  s = DictStochastic{keytype(value),valtype(value),typeof(value)}(value, :nothing, Int[], fx, src, Symbol[],
+  s = DictStochastic{keytype(value),myvaltype(value),typeof(value)}(value, :nothing, Int[], fx, src, Symbol[],
                       NullUnivariateDistribution())
   setmonitor!(s, monitor)
 end
@@ -295,7 +308,7 @@ function setinits!(s::AbstractStochastic, m::AbstractModel, x)
 end
 
 function setinits!(s::ScalarStochastic, m::Model, x::Real)
-  s.value = convert(valtype(s), x)
+  s.value = convert(myvaltype(s), x)
   s.distr = s.eval(m)
   setmonitor!(s, s.monitor)
 end
@@ -310,25 +323,23 @@ function setinits!(s::ArrayStochastic, m::Model, x::DenseArray)
 end
 
 function setinits!(s::ScalarStochastic, m::ElasticModel, x::Real)
-  print(string("valtype is ",string(valtype(s))," and ",x,"\n\n\n"))
-  s.value = convert(valtype(s), x)
-  print(string("valtype222\n\n\n"))
+  s.value = convert(myvaltype(s), x)
   s.distr = s.eval(m)
   setmonitor!(s, s.monitor)
 end
 
 function setinits!(s::DictStochastic, m::ElasticModel, x::Real)
-  s.value = convert(VecDictVariateVal{valtype(s)}, [x])
+  s.value = convert(VecDictVariateVals{myvaltype(s)}, [x])
   s.distr = s.eval(m)
   setmonitor!(s, s.monitor)
 end
 
 function setinits!(s::DictStochastic, m::ElasticModel, x)
-  print(string("valtype is ",string(valtype(s))," and ",x,"\n\n\n"))
-  vtype = valtype(s)
-  s.value = VecDictVariateVal{vtype}([vtype(xi) for xi in x])
+  print(string("myvaltype is ",string(myvaltype(s))," and ",x,"\n\n\n"))
+  vtype = myvaltype(s)
+  s.value = VecDictVariateVals{vtype}([vtype(xi) for xi in x])
   s.distr = s.eval(m)
-  if !isa(s.distr, UnivariateDistribution) && dims(s) != dims(s.distr)
+  if !isa(s.distr, UnivariateDistribution) && false # dims(s) != dims(s.distr)
     throw(DimensionMismatch("incompatible distribution for stochastic node"))
   end
   setmonitor!(s, s.monitor)

@@ -126,15 +126,24 @@ function unlist(m::ElasticModel, monitoronly::Bool)
     lvalue = unlist(node)
     monitoronly ? lvalue[node.monitor] : lvalue
   end
-  SymDictVariateVal(k => f(k) for k in keys(m, :dependent))
+  SymDictVariateVals(k => f(k) for k in keys(m, :dependent))
 end
 
 function unlist(m::Model, nodekeys::Vector{Symbol}, transform::Bool=false)
   vcat(map(key -> unlist(m[key], transform), nodekeys)...)
 end
 
-function unlist(m::ElasticModel, nodekeys::Vector{Symbol}, transform::Bool=false)
-  SymDictVariateVal(key => unlist(m[key], transform) for key in nodekeys)
+function unlist{SVT}(m::ElasticModel{SVT}, nodekeys::Vector{Symbol}, transform::Bool=false)
+  println("qqqq unlist; nodekeys: ", nodekeys)
+
+  function fixtype(v::ScalarVariateType)
+    SVT(v)
+  end
+  function fixtype(v)
+    println("qqqq fixtype; v: ", v)
+    VecDictVariateVals{SVT}(Vector{LeafOrBranch{SVT}}([fixtype(sv) for sv in v]))
+  end
+  SymDictVariateVals{SVT}(Dict{Symbol,LeafOrBranch{SVT}}(key => fixtype(unlist(m[key], transform)) for key in nodekeys))
 end
 
 

@@ -55,26 +55,32 @@ module Mamba
 
   #################### Variate Types ####################
 
-  const ScalarVariateVal = Real
-  const ArrayVariateVal{N,VT<: ScalarVariateVal} = DenseArray{VT, N}
-  const DictVariateVal{K,VT<: ScalarVariateVal} = Associative{K, VT} #In the future, this will be optimized.
-        #For instance, if K is Tuple{Symbol,Int64,Int64}, then DictVariateVal{K}
-        #could be Dict{Symbol,Array{Array{Float64,1},1}}
+  const ScalarVariateType = Real
+  abstract type ArrayVariateVals{SVT,N} <: DenseArray{SVT, N} end #where SVT <: Real #but this constraint cannot be expressed in Julia
+  abstract type DictVariateVals{SVT,K} <: Associative{K, SVT} end #where SVT <: Real #but this constraint cannot be expressed in Julia
 
 
-  const AbstractVariateVal{V<:ScalarVariateVal} = Union{V, (ArrayVariateVal{XX,V} where XX), (DictVariateVal{XX,V} where XX)}
-  const VectorVariateVal{V<: ScalarVariateVal} = ArrayVariateVal{1,V}
-  const MatrixVariateVal{V<: ScalarVariateVal} = ArrayVariateVal{2,V}
-        #TODO: Why do I have to qualify these with "where" when ArrayVariateVal is already so qualified? Who knows, who cares for now.
+  const AbstractVariateVals{SVT} = Union{SVT, (ArrayVariateVals{SVT,XX} where XX), (DictVariateVals{SVT,XX} where XX)} where SVT<:ScalarVariateType
+  const VectorVariateVals{SVT} = ArrayVariateVals{SVT,1} where SVT<:ScalarVariateType
+  const MatrixVariateVals{SVT} = ArrayVariateVals{SVT,2} where SVT<:ScalarVariateType
 
-  abstract type Variate{V<:AbstractVariateVal} end
+  abstract type Variate{VS<:AbstractVariateVals}  end
 
-  const ScalarVariate{VT<:ScalarVariateVal} = Variate{VT}
-  const ArrayVariate{N,VT<:ScalarVariateVal,V<:ArrayVariateVal{N,VT}} = Variate{V}
-  const DictVariate{K,VT<:ScalarVariateVal,V<:DictVariateVal{K,VT}} = Variate{V}
-  const VectorVariate{VT<:VectorVariateVal} = Variate{VT}
-  const MatrixVariate{VT<:MatrixVariateVal} = Variate{VT}
-   #TODO: more redundant qualification, don't even know if it's necessary
+  const ScalarVariate = Variate{SVT} where SVT<:ScalarVariateType
+
+  abstract type ArrayVariate{N,SVT,V} <: Variate{V} end
+  const ValidArrayVariate = ArrayVariate{N,SVT,ArrayVariateVals{SVT,N}} where SVT<:ScalarVariateType where N
+
+
+
+  const ValidVectorVariate = ArrayVariate{1,SVT,VectorVariateVals{SVT}} where SVT<:ScalarVariateType
+
+
+  const ValidMatrixVariate = ArrayVariate{2,SVT,MatrixVariateVals{SVT}} where SVT<:ScalarVariateType
+
+  abstract type DictVariate{K,SVT,V} <: Variate{V} end
+  const ValidDictVariate = DictVariate{N,SVT,Variate{VS}} where VS<:DictVariateVals{SVT,N} where SVT<:ScalarVariateType where N
+
 
 
   #################### Distribution Types ####################
@@ -85,37 +91,36 @@ module Mamba
                                    Associative{Any,MultivariateDistribution}}
 
 
-  #################### Concrete DictVariateVal Types ####################
-  abstract type NestedDictVariateVal{VT<:ScalarVariateVal} <: DictVariateVal{Tuple,VT} end
+  #################### Concrete DictVariateVals Types ####################
+  abstract type NestedDictVariateVals{SVT<:ScalarVariateType} <: DictVariateVals{SVT,Tuple} end
 
-  type SymDictVariateVal{VT} <: NestedDictVariateVal{VT}
-      vals::Dict{Symbol,Union{VT,NestedDictVariateVal{VT}}}
+  const LeafOrBranch{SVT} = Union{SVT,NestedDictVariateVals{SVT}} where SVT<:ScalarVariateType
+  type SymDictVariateVals{SVT} <: NestedDictVariateVals{SVT}
+      vals::Dict{Symbol,LeafOrBranch{SVT}}
   end
 
-  type VecDictVariateVal{VT} <: NestedDictVariateVal{VT}
-      vals::Vector{Union{VT,NestedDictVariateVal{VT}}}
+  type VecDictVariateVals{SVT} <: NestedDictVariateVals{SVT}
+      vals::Vector{LeafOrBranch{SVT}}
       qqqq::Bool #TODO: remove
 
-      function VecDictVariateVal{VT}() where VT<:ScalarVariateVal
-        new{VT}(Vector{Union{VT,NestedDictVariateVal}}(),true)
+      function VecDictVariateVals{SVT}() where SVT<:ScalarVariateType
+        new{SVT}(Vector{LeafOrBranch{SVT}}(),true)
       end
 
-      function VecDictVariateVal{VT}(x::Vector{VT}) where VT<:ScalarVariateVal
-        vdv = VecDictVariateVal{VT}()
+      function VecDictVariateVals{SVT}(x
+            ::Union{Vector{SVT},Vector{Union{SVT,NestedDictVariateVals{SVT}}}}) where SVT<:ScalarVariateType
+        vdv = VecDictVariateVals{SVT}()
         for i in 1:length(x)
-          vdv[(i,)] = x[i]
+          vdv[i] = x[i]
         end
         vdv
       end
   end
 
-  #const NestedDictVariateVal{VT} = Union{SymDictVariateVal{VT},VecDictVariateVal{VT}}
-
-
   #################### Dependent Types ####################
 
-  type ScalarLogical{VT} <: Variate{VT}
-    value::VT
+  type ScalarLogical{V} <: Variate{V}
+    value::V
     symbol::Symbol
     monitor::Vector{Int}
     eval::Function
@@ -123,8 +128,8 @@ module Mamba
     targets::Vector{Symbol}
   end
 
-  type ArrayLogical{N,VT} <: Variate{ArrayVariateVal{N,VT}}
-    value::ArrayVariateVal{N,VT}
+  type ArrayLogical{N,SVT,V} <: ArrayVariate{N,SVT,V}
+    value::V
     symbol::Symbol
     monitor::Vector{Int}
     eval::Function
@@ -132,8 +137,8 @@ module Mamba
     targets::Vector{Symbol}
   end
 
-  type ScalarStochastic{VT} <: Variate{VT}
-    value::VT
+  type ScalarStochastic{V} <: Variate{V}
+    value::V
     symbol::Symbol
     monitor::Vector{Int}
     eval::Function
@@ -142,7 +147,7 @@ module Mamba
     distr::UnivariateDistribution
   end
 
-  type ArrayStochastic{N,VT<:ScalarVariateVal,V<:ArrayVariateVal{N,VT}} <: ArrayVariate{N,VT,V}
+  type ArrayStochastic{N,SVT,V} <: ArrayVariate{N,SVT,V}
     value::V
     symbol::Symbol
     monitor::Vector{Int}
@@ -150,13 +155,12 @@ module Mamba
     sources::Vector{Symbol}
     targets::Vector{Symbol}
     distr::DistributionStruct
-
-    function ArrayStochastic(value::ArrayVariateVal, symbol::Symbol, monitor, eval, sources, targets, distr)
-      new{ndims(value),valtype(value),typeof(value)}(value, symbol, monitor, eval, sources, targets, distr)
+    function ArrayStochastic{N,SVT,V}(value::ArrayVariateVals, symbol::Symbol, monitor, eval, sources, targets, distr) where {N,SVT,V}
+      new{ndims(value),myvaltype(value),typeof(value)}(value, symbol, monitor, eval, sources, targets, distr)
     end
   end
 
-  type DictStochastic{K,VT<:ScalarVariateVal,V<:DictVariateVal{K,VT}} <: DictVariate{K,VT,V}
+  type DictStochastic{K,SVT,V} <: DictVariate{K,SVT,V}
     value::V
     symbol::Symbol
     monitor::Vector{Int}
@@ -169,8 +173,8 @@ module Mamba
 
 
 
-const AbstractLogical{VT} = Union{ScalarLogical{VT}, (ArrayLogical{N,VT} where N)}
-const AbstractStochastic{VT} = Union{ScalarStochastic{VT}, (ArrayStochastic{N,VT} where N), (DictStochastic{K,VT} where K)}
+const AbstractLogical{SVT} = Union{ScalarLogical{SVT}, (ArrayLogical{N,SVT} where N)}
+const AbstractStochastic{SVT} = Union{ScalarStochastic{SVT}, (ArrayStochastic{N,SVT} where N), (DictStochastic{K,SVT} where K)}
 const AbstractDependent = Union{AbstractLogical, AbstractStochastic}
 
 const AbstractFixedDependent = Union{ScalarLogical, ArrayLogical, ScalarStochastic, ArrayStochastic}
@@ -191,10 +195,10 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
 
   abstract type SamplerTune end
 
-  abstract type AbstractSamplerVariate{V,T<:SamplerTune} <: Variate{V} end
+  abstract type AbstractSamplerVariate{VS,T<:SamplerTune} <: Variate{VS} end
 
-  type SamplerVariate{T<:SamplerTune} <: AbstractSamplerVariate{VectorVariateVal,T}
-    value::VectorVariateVal
+  type SamplerVariate{T<:SamplerTune} <: AbstractSamplerVariate{VectorVariateVals{Float64},T}
+    value::VectorVariateVals{Float64}
     tune::T
 
     function SamplerVariate{T}(x::AbstractVector, tune::T) where T<:SamplerTune
@@ -208,8 +212,8 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
     end
   end
 
-  type DictSamplerVariate{K,T<:SamplerTune} <: AbstractSamplerVariate{DictVariateVal{K},T}
-      value::DictVariateVal
+  type DictSamplerVariate{K,T<:SamplerTune} <: AbstractSamplerVariate{DictVariateVals{Float64,K},T}
+      value::DictVariateVals
       tune::T
 
       function DictSamplerVariate{T}(x::Associative, tune::T) where T<:SamplerTune
@@ -231,12 +235,12 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
     keys::Vector{Symbol}
   end
 
-  type AbstractModelState{StateType <: AbstractVariateVal}
+  type AbstractModelState{StateType} #where StateType <: AbstractVariateVals
     value::StateType
     tune::Vector{Any}
   end
 
-  type AbstractModel{StateType <: AbstractVariateVal}
+  type AbstractModel{StateType} #where StateType <: AbstractVariateVals
     nodes::Dict{Symbol, Any}
     samplers::Vector{Sampler}
     states::Vector{AbstractModelState{StateType}}
@@ -246,11 +250,11 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
     hasinits::Bool
   end
 
-  const Model = AbstractModel{ArrayVariateVal}
+  const Model{SVT} = AbstractModel{ArrayVariateVals{SVT}}
 
-  const ModelState = AbstractModelState{ArrayVariateVal}
+  const ModelState = AbstractModelState{ArrayVariateVals{Float64}}
 
-  const ElasticModel = AbstractModel{DictVariateVal}
+  const ElasticModel{SVT} = AbstractModel{DictVariateVals{SVT,Tuple}}
 
 
   #################### Chains Type ####################
@@ -339,7 +343,7 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
     ArrayVariate,
     Chains,
     Logical,
-    MatrixVariate,
+    ValidMatrixVariate,
     Model, AbstractModel, ElasticModel,
     ModelChains,
     Sampler,
@@ -349,7 +353,7 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
     ScalarStochastic,
     ScalarVariate,
     Stochastic, Stochelastic,
-    VectorVariate
+    ValidVectorVariate
 
   export
     BDiagNormal,
@@ -422,6 +426,9 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
     mm,
     pt,
     px
+
+  export
+    get
 
 
   #################### Deprecated ####################

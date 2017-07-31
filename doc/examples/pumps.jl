@@ -7,6 +7,7 @@ if isdefined(:Mamba)
     #__precompile__ = prec
 end
 
+using Distributions
 using Mamba
 
 ## Data
@@ -16,7 +17,6 @@ pumps = Dict{Symbol, Any}(
 )
 pumps[:N] = length(pumps[:y])
 
-
 ## Model Specification
 model = Model(
 
@@ -24,9 +24,7 @@ model = Model(
     (theta, t, N) ->
       UnivariateDistribution[
         begin
-          print(" qqqq\n\n\n")
-          print(theta," qqqq\n\n\n")
-          lambda = theta[(i,)] * t[(i,)]
+          lambda = theta[i] * t[i]
           Poisson(lambda)
         end
         for i in 1:N

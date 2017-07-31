@@ -10,13 +10,13 @@ pumps[:N] = length(pumps[:y])
 
 
 import Base:
-    valtype
+    myvaltype
 
 type QQQQ{B<:Real} end
 
-valtype{VT}(a::QQQQ{VT}) = VT 
+myvaltype{VV}(a::QQQQ{VV}) = VV 
 
 a = QQQQ{Int}()
 b = QQQQ{Float64}()
-valtype(a)
-valtype(b)
+myvaltype(a)
+myvaltype(b)

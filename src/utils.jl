@@ -1,6 +1,6 @@
 #################### Model Expression Operators ####################
-UofVofTs = Union{Vector{Tuple{Symbol, UnionAll}},
-                                            Vector{Tuple{Symbol, DataType}}}
+TypeLike = Union{UnionAll,DataType,Type}
+UofVofTs = Vector{Tuple{Symbol, X}} where X<:TypeLike
 
 function modelfx(literalargs::UofVofTs, f::Function)
   modelfxsrc(literalargs, f)[1]
@@ -20,7 +20,9 @@ function modelexprsrc(f::Function, literalargs::UofVofTs)
   ccall(:jl_fill_argnames, Void, (Any, Any), m.source, argnames)
 
   fkeys = Symbol[argnames[2:end]...]
-  ftypes = DataType[m.sig.parameters[2:end]...]
+  #println(m.sig.parameters[2:end]," qqqq modelexprsrc1")
+  #println([(Symbol[argnames[i]],typeof(m.sig.parameters[i]),m.sig.parameters[i]) for i in 2:length(argnames)]," qqqq modelexprsrc2")
+  ftypes = TypeLike[m.sig.parameters[2:end]...]
   n = length(fkeys)
 
   literalinds = Int[]

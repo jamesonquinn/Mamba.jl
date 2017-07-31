@@ -157,15 +157,15 @@ function cat3(c1::AbstractChains, args::AbstractChains...)
   names = c1.names
   all(c -> c.names == names, args) ||
     begin
+      errStr = "chain names differ:"
       for c in args
         if c.names != names
-          print(string("QQQQchain ",
-                       string(c.names),
+          errStr = string(errStr," ", string(c.names),
                        " ; ",
-                       string(names)))
+                       string(names))
         end
       end
-      throw(ArgumentError("chain names differ"))
+      throw(ArgumentError(errStr))
     end
 
   value = cat(3, c1.value, map(c -> c.value, args)...)

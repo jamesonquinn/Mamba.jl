@@ -5,7 +5,7 @@ using Mamba
 
 import ForwardDiff:
         Dual
-        
+
 import Distributions:
         logpdf
 
@@ -82,7 +82,6 @@ function logpdf(d::Normalish, v::Dual)
 end
 
 function logpdf(d::GossipyNormal, v::Float64)
-  print("fuuu")
   logpdf(d.Z,v)
 end
 

@@ -1,8 +1,8 @@
 #################### Core Model Functionality ####################
 
-nodetype{VT}(x::AbstractModel{VT}) = VT
-nodetype(x::AbstractFixedDependent) = ArrayVariateVal
-nodetype(x::AbstractElasticDependent) = DictVariateVal
+nodetype{VV}(x::AbstractModel{VV}) = VV
+nodetype(x::AbstractFixedDependent) = ArrayVariateVals{Float64,1}
+nodetype(x::AbstractElasticDependent) = DictVariateVals{Float64,Tuple}
 
 #################### Constructors ####################
 
