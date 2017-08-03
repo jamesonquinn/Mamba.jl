@@ -134,13 +134,11 @@ function unlist(m::Model, nodekeys::Vector{Symbol}, transform::Bool=false)
 end
 
 function unlist{SVT}(m::ElasticModel{SVT}, nodekeys::Vector{Symbol}, transform::Bool=false)
-  println("qqqq unlist; nodekeys: ", nodekeys)
-
   function fixtype(v::ScalarVariateType)
     SVT(v)
   end
   function fixtype(v)
-    println("qqqq fixtype; v: ", v)
+    #println("qqqq fixtype; v: ", v)
     VecDictVariateVals{SVT}(Vector{LeafOrBranch{SVT}}([fixtype(sv) for sv in v]))
   end
   SymDictVariateVals{SVT}(Dict{Symbol,LeafOrBranch{SVT}}(key => fixtype(unlist(m[key], transform)) for key in nodekeys))
@@ -167,27 +165,23 @@ function relist{T<:Real}(m::Model, x::AbstractArray{T},
   values
 end
 
-function relist{T<:Real}(m::ElasticModel, x::AbstractArray{T},
+function relist(m::ElasticModel, x,
                          nodekeys::Vector{Symbol}, transform::Bool=false)
-  values = Dict{Symbol,Any}()
-  N = length(x)
-  offset = 0
-  for key in nodekeys
-    value, n = relistlength(m[key], view(x, (offset + 1):N), transform)
-    values[key] = value
-    offset += n
-  end
-  offset == length(x) ||
-    throw(ArgumentError("incompatible number of values to put in nodes"))
-  values
+  x
 end
 
-function relist!{T<:Real}(m::Model, x::AbstractArray{T}, block::Integer=0,
+function relist!(m::AbstractModel, x, block::Integer=0,
                  transform::Bool=false)
   nodekeys = keys(m, :block, block)
   values = relist(m, x, nodekeys, transform)
   for key in nodekeys
-    m[key].value = values[key]
+    try
+      m[key].value = values[key]
+    catch
+      println("Failed: m[key].value = values[key]") #qqqq
+      println(values[key])
+      println(typeof(m[key].value))
+    end
   end
   update!(m, block)
 end

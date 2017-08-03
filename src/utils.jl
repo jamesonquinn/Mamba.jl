@@ -28,14 +28,18 @@ function modelexprsrc(f::Function, literalargs::UofVofTs)
   literalinds = Int[]
   for (key, T) in literalargs
     i = findfirst(fkey -> fkey == key, fkeys)
-    if i != 0 && ftypes[i] == T
-      push!(literalinds, i)
+    if i != 0
+      if ftypes[i] <: T
+        push!(literalinds, i)
+      else #qqqq remove
+        println(string("not literalinds: ",key," ",i," ",i != 0 && ftypes[i]," ",T)) #qqqq
+      end
     end
   end
   nodeinds = setdiff(1:n, literalinds)
 
   all(T -> T == Any, ftypes[nodeinds]) ||
-    throw(ArgumentError("model node arguments are not all of type Any"))
+    throw(ArgumentError(string("model node arguments are not all of type Any: ",[(fkeys,ftypes) for i in nodeinds])))
 
   modelargs = Array{Any}(n)
   for i in nodeinds

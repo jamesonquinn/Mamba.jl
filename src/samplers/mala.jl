@@ -24,7 +24,7 @@ type MALATune <: SamplerTune
 end
 
 
-const MALAVariate = SamplerVariate{MALATune}
+const MALAVariate = FlatSamplerVariate{MALATune}
 
 validate(v::MALAVariate) = validate(v, v.tune.SigmaL)
 

@@ -63,7 +63,7 @@ NUTSVariate Type
 Declaration
 ```````````
 
-``const NUTSVariate = SamplerVariate{NUTSTune}``
+``const NUTSVariate = FlatSamplerVariate{NUTSTune}``
 
 Fields
 ``````

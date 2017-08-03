@@ -71,8 +71,8 @@ Declaration
 
 .. code-block:: julia
 
-    const SliceUnivariate = SamplerVariate{SliceTune{Univariate}}
-    const SliceMultivariate = SamplerVariate{SliceTune{Multivariate}}
+    const SliceUnivariate = FlatSamplerVariate{SliceTune{Univariate}}
+    const SliceMultivariate = FlatSamplerVariate{SliceTune{Multivariate}}
 
 Fields
 ``````

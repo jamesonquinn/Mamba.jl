@@ -23,8 +23,8 @@ type DSTune{F<:DSForm} <: SamplerTune
 end
 
 
-const DGSVariate = SamplerVariate{DSTune{Function}}
-const DiscreteVariate = SamplerVariate{DSTune{Vector{Float64}}}
+const DGSVariate = FlatSamplerVariate{DSTune{Function}}
+const DiscreteVariate = FlatSamplerVariate{DSTune{Vector{Float64}}}
 
 validate(v::DGSVariate) = validate(v, v.tune.support)
 

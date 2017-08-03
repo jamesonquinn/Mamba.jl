@@ -1,18 +1,18 @@
 #################### Sampler ####################
 
-const samplerfxargs = [(:model, Mamba.Model), (:block, Integer)]
+const samplerfxargs = [(:model, Mamba.AbstractModel), (:block, Integer)]
 
 
 #################### Types and Constructors ####################
 
 type NullFunction end
 
-type SamplingBlock
-  model::Model
+type SamplingBlock{M<:AbstractModel} <: AbstractSamplingBlock
+  model::M
   index::Int
   transform::Bool
 
-  SamplingBlock(model::Model, index::Integer=0, transform::Bool=false) =
+  SamplingBlock{M}(model::M, index::Integer=0, transform::Bool=false) where M<: AbstractModel =
     new(model, index, transform)
 end
 
@@ -24,21 +24,21 @@ function Sampler(params::Vector{Symbol}, f::Function, tune::Any=Dict())
 end
 
 
-function SamplerVariate{T<:SamplerTune, U<:Real}(x::AbstractVector{U}, tune::T)
+function SamplerVariate{T<:SamplerTune, VS<:AbstractVariateVals}(x::VS, tune::T)
   SamplerVariate{T}(x, tune)
 end
 
-function SamplerVariate(block::SamplingBlock, pargs...; kargs...)
+function SamplerVariate{T<:SamplerTune, VS<:AbstractVariateVals}(block::SamplingBlock, pargs...; kargs...)
   m = block.model
   SamplerVariate(unlist(block), m.samplers[block.index], m.iter, pargs...;
                  kargs...)
 end
 
-function SamplerVariate{T<:SamplerTune, U<:Real}(x::AbstractVector{U},
+function SamplerVariate{T<:SamplerTune, VS<:AbstractVariateVals}(x::VS,
                                                  s::Sampler{T}, iter::Integer,
                                                  pargs...; kargs...)
   if iter == 1
-    v = SamplerVariate{T}(x, pargs...; kargs...)
+    v = FlatSamplerVariate{T,VS}(x, pargs...; kargs...)
     s.tune = v.tune
   else
     v = SamplerVariate(x, s.tune)

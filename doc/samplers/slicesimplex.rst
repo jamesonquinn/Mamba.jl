@@ -58,7 +58,7 @@ SliceSimplexVariate Type
 Declaration
 ```````````
 
-``const SliceSimplexVariate = SamplerVariate{SliceSimplexTune}``
+``const SliceSimplexVariate = FlatSamplerVariate{SliceSimplexTune}``
 
 Fields
 ``````

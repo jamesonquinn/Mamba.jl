@@ -25,7 +25,7 @@ BHMCTune(x::Vector, traveltime::Real, logf::Function) =
   BHMCTune(x, traveltime, Nullable{Function}(logf))
 
 
-const BHMCVariate = SamplerVariate{BHMCTune}
+const BHMCVariate = FlatSamplerVariate{BHMCTune}
 
 validate(v::BHMCVariate) = validatebinary(v)
 

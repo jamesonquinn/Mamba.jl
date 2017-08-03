@@ -17,8 +17,8 @@ type BMC3Tune{F<:BMC3Form} <: SamplerTune
 end
 
 
-const BMC3IntVariate = SamplerVariate{BMC3Tune{Int}}
-const BMC3VecVariate = SamplerVariate{BMC3Tune{Vector{Vector{Int}}}}
+const BMC3IntVariate = FlatSamplerVariate{BMC3Tune{Int}}
+const BMC3VecVariate = FlatSamplerVariate{BMC3Tune{Vector{Vector{Int}}}}
 
 BMC3Variate{F<:BMC3Form}(x::Vector, logf::Function; k::F=1) =
   SamplerVariate{BMC3Tune{F}}(x, k, logf)

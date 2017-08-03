@@ -58,7 +58,7 @@ BHMCVariate Type
 Declaration
 ```````````
 
-``const BHMCVariate = SamplerVariate{BHMCTune}``
+``const BHMCVariate = FlatSamplerVariate{BHMCTune}``
 
 Fields
 ``````

@@ -17,8 +17,8 @@ type BMGTune{F<:BMGForm} <: SamplerTune
 end
 
 
-const BMGIntVariate = SamplerVariate{BMGTune{Int}}
-const BMGVecVariate = SamplerVariate{BMGTune{Vector{Vector{Int}}}}
+const BMGIntVariate = FlatSamplerVariate{BMGTune{Int}}
+const BMGVecVariate = FlatSamplerVariate{BMGTune{Vector{Vector{Int}}}}
 
 BMGVariate{F<:BMGForm}(x::Vector, logf::Function; k::F=1) =
   SamplerVariate{BMGTune{F}}(x, k, logf)

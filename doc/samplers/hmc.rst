@@ -66,7 +66,7 @@ HMCVariate Type
 Declaration
 ```````````
 
-``const HMCVariate = SamplerVariate{HMCTune}``
+``const HMCVariate = FlatSamplerVariate{HMCTune}``
 
 Fields
 ``````

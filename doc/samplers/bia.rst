@@ -58,7 +58,7 @@ BIAVariate Type
 Declaration
 ```````````
 
-``const BIAVariate = SamplerVariate{BIATune}``
+``const BIAVariate = FlatSamplerVariate{BIATune}``
 
 Fields
 ``````

@@ -33,7 +33,7 @@ function mcmc(m::AbstractModel, inputs::Dict{Symbol}, inits::Vector{Dict{Symbol,
 end
 
 
-function mcmc_master!(m::Model, window::UnitRange{Int}, burnin::Integer,
+function mcmc_master!{ST}(m::AbstractModel{ST}, window::UnitRange{Int}, burnin::Integer,
                       thin::Integer, chains::AbstractArray{Int}, verbose::Bool)
   states = m.states
   m.states = ModelState[]
@@ -57,6 +57,7 @@ function mcmc_master!(m::Model, window::UnitRange{Int}, burnin::Integer,
 
   ModelChains(cat(3, sims...), model)
 end
+
 
 
 function mcmc_worker!(args::Vector)

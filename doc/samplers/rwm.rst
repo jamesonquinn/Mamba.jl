@@ -61,7 +61,7 @@ RWMVariate Type
 Declaration
 ```````````
 
-``const RWMVariate = SamplerVariate{RWMTune}``
+``const RWMVariate = FlatSamplerVariate{RWMTune}``
 
 Fields
 ``````

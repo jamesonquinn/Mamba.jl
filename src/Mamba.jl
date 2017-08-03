@@ -192,32 +192,38 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
     targets::Vector{Symbol}
   end
 
-
   abstract type SamplerTune end
 
-  abstract type AbstractSamplerVariate{VS,T<:SamplerTune} <: Variate{VS} end
+  abstract type AbstractSamplingBlock end
 
-  type SamplerVariate{T<:SamplerTune} <: AbstractSamplerVariate{VectorVariateVals{Float64},T}
-    value::VectorVariateVals{Float64}
+  const Blockish = Union{AbstractSamplingBlock, Variate, ScalarVariateType}
+
+  abstract type (AbstractSamplerVariate{VS<:AbstractVariateVals,T,B<:Blockish}
+          <: Variate{VS}) end #where B<:AbstractSamplingBlock{VS} where T<:SamplerTune
+
+  type SamplerVariate{VS,T,B} <: AbstractSamplerVariate{VS,T,B}
+    value::B
     tune::T
 
-    function SamplerVariate{T}(x::AbstractVector, tune::T) where T<:SamplerTune
-      v = new(x, tune)
+    function SamplerVariate{VS,T,B}(x::B, tune::T) where T where VS<:AbstractVariateVals where B
+      v = new{VS,T,B}(x, tune)
       validate(v)
     end
 
-    function SamplerVariate{T}(x::AbstractVector, pargs...; kargs...) where T<:SamplerTune
+    function SamplerVariate{VS,T,B}(x::B, pargs...; kargs...) where T where VS<:AbstractVariateVals where B
       value = convert(Vector{Float64}, x)
-      SamplerVariate{T}(value, T(value, pargs...; kargs...))
+      SamplerVariate{VS,T,B}(value, T(value, pargs...; kargs...))
     end
   end
 
-  type DictSamplerVariate{K,T<:SamplerTune} <: AbstractSamplerVariate{DictVariateVals{Float64,K},T}
-      value::DictVariateVals
+  const FlatSamplerVariate{T,B} = SamplerVariate{VectorVariateVals{Float64},T,B}
+
+  type DictSamplerVariate{K,T<:SamplerTune,B<:Blockish} <: AbstractSamplerVariate{DictVariateVals{Float64,K},T,B}
+      value::DictVariateVals{Float64,K}
       tune::T
 
       function DictSamplerVariate{T}(x::Associative, tune::T) where T<:SamplerTune
-        v = new{typeof(first(keys(x))),T}(x, tune)
+        v = new{typeof(first(keys(x))),T,typeof(x)}(x, tune)
         validate(v)
       end
 
@@ -235,12 +241,12 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
     keys::Vector{Symbol}
   end
 
-  type AbstractModelState{StateType} #where StateType <: AbstractVariateVals
+  type AbstractModelState{StateType} #where StateType <: Variate
     value::StateType
     tune::Vector{Any}
   end
 
-  type AbstractModel{StateType} #where StateType <: AbstractVariateVals
+  type AbstractModel{StateType} #where StateType <: Variate
     nodes::Dict{Symbol, Any}
     samplers::Vector{Sampler}
     states::Vector{AbstractModelState{StateType}}

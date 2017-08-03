@@ -24,8 +24,8 @@ type SliceTune{F<:SliceForm} <: SamplerTune
 end
 
 
-const SliceUnivariate = SamplerVariate{SliceTune{Univariate}}
-const SliceMultivariate = SamplerVariate{SliceTune{Multivariate}}
+const SliceUnivariate = FlatSamplerVariate{SliceTune{Univariate}}
+const SliceMultivariate = FlatSamplerVariate{SliceTune{Multivariate}}
 
 validate{F<:SliceForm}(v::SamplerVariate{SliceTune{F}}) =
   validate(v, v.tune.width)
@@ -46,10 +46,10 @@ function Slice{T<:Real, F<:SliceForm}(params::ElementOrVector{Symbol},
                                       width::ElementOrVector{T},
                                       ::Type{F}=Multivariate;
                                       transform::Bool=false)
-  samplerfx = function(model::Model, block::Integer)
-    block = SamplingBlock(model, block, transform)
-    v = SamplerVariate(block, width)
-    sample!(v, x -> logpdf!(block, x))
+  samplerfx = function(model::AbstractModel, block::Integer)
+    block = SamplingBlock{typeof(model)}(model, block, transform)
+    v = SamplerVariate{vstype(model),typeof(width),typeof(block)}(block, width)
+    sample!(v, Nullable(x -> logpdf!(block, x)))
     relist(block, v)
   end
   Sampler(params, samplerfx, SliceTune{F}())

@@ -89,6 +89,9 @@ function names(v::ArrayVariate, prefix)
   values
 end
 
+function names(v::DictVariate, prefix)
+  [string(prefix, "[",key,"]") for key in keys(v)]
+end
 
 #################### Mathematical Operators ####################
 
