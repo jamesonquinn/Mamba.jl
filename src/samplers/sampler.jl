@@ -24,24 +24,24 @@ function Sampler(params::Vector{Symbol}, f::Function, tune::Any=Dict())
 end
 
 
-function SamplerVariate{T<:SamplerTune, VS<:AbstractVariateVals}(x::VS, tune::T)
+function SamplerVariate{VS<:AbstractVariateVals, T<:SamplerTune,B<:AbstractSamplingBlock}(x::B, tune::T)
   SamplerVariate{T}(x, tune)
 end
 
-function SamplerVariate{T<:SamplerTune, VS<:AbstractVariateVals}(block::SamplingBlock, pargs...; kargs...)
+function SamplerVariate{B<:AbstractSamplingBlock}(block::B, pargs...; kargs...)
   m = block.model
-  SamplerVariate(unlist(block), m.samplers[block.index], m.iter, pargs...;
+  SamplerVariate{vstype(m)}(unlist(block), m.samplers[block.index], m.iter, pargs...;
                  kargs...)
 end
 
-function SamplerVariate{T<:SamplerTune, VS<:AbstractVariateVals}(x::VS,
+function SamplerVariate{VS<:AbstractVariateVals, T<:SamplerTune, B}(x::B,
                                                  s::Sampler{T}, iter::Integer,
                                                  pargs...; kargs...)
   if iter == 1
-    v = FlatSamplerVariate{T,VS}(x, pargs...; kargs...)
+    v = FlatSamplerVariate{VS,T,B}(x, pargs...; kargs...)
     s.tune = v.tune
   else
-    v = SamplerVariate(x, s.tune)
+    v = SamplerVariate{VS}(x, s.tune)
   end
   v
 end

@@ -21,7 +21,7 @@ function myvaltype(x::Type{X}) where X<:Variate
   myvaltype(V,Variate)
 end
 function myvaltype{SVT}(x::Type{Variate{SVT}},::Type{Variate})
-  myvaltype(SVT,Variate)
+  SVT
 end
 function myvaltype{V}(x::AbstractModel{V})
   myvaltype(V)
@@ -286,7 +286,7 @@ function Stochastic(d::Integer, f::Function,
                     monitor::Union{Bool, Vector{Int}}=true)
   value = Array{Float64}(fill(0, d)...)
   fx, src = modelfxsrc(depfxargs, f)
-  s = ArrayStochastic(value, :nothing, Int[], fx, src, Symbol[],
+  s = ArrayStochastic{1,myvaltype(value),typeof(value)}(value, :nothing, Int[], fx, src, Symbol[],
                       NullUnivariateDistribution())
   setmonitor!(s, monitor)
 end

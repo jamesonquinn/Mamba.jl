@@ -46,10 +46,10 @@ function Slice{T<:Real, F<:SliceForm}(params::ElementOrVector{Symbol},
                                       width::ElementOrVector{T},
                                       ::Type{F}=Multivariate;
                                       transform::Bool=false)
-  samplerfx = function(model::AbstractModel, block::Integer)
-    block = SamplingBlock{typeof(model)}(model, block, transform)
+  samplerfx = function(model::M, block::Integer) where M <: AbstractModel
+    block = SamplingBlock{M}(model, block, transform)
     v = SamplerVariate{vstype(model),typeof(width),typeof(block)}(block, width)
-    sample!(v, Nullable(x -> logpdf!(block, x)))
+    sample!(v, x -> logpdf!(block, x))
     relist(block, v)
   end
   Sampler(params, samplerfx, SliceTune{F}())

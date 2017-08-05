@@ -13,6 +13,11 @@ function modelfxsrc(literalargs::UofVofTs, f::Function)
   (fx, src)
 end
 
+dtof(t::DataType) = t
+
+dtof(t::TypeVar) = t.ub
+
+dtof(t::UnionAll) = t
 
 function modelexprsrc(f::Function, literalargs::UofVofTs)
   m = first(methods(f).ms)
@@ -22,7 +27,12 @@ function modelexprsrc(f::Function, literalargs::UofVofTs)
   fkeys = Symbol[argnames[2:end]...]
   #println(m.sig.parameters[2:end]," qqqq modelexprsrc1")
   #println([(Symbol[argnames[i]],typeof(m.sig.parameters[i]),m.sig.parameters[i]) for i in 2:length(argnames)]," qqqq modelexprsrc2")
-  ftypes = TypeLike[m.sig.parameters[2:end]...]
+  if isa(m.sig, UnionAll)
+    msig = m.sig.body
+  else
+    msig = m.sig
+  end
+  ftypes = TypeLike[dtof(p) for p in msig.parameters[2:end]]
   n = length(fkeys)
 
   literalinds = Int[]

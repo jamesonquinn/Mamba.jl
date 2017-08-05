@@ -5,7 +5,7 @@ module Mamba
   #################### Imports ####################
 
   import Base: cor, dot, valtype, getindex, get, length, keys, setindex!,
-         start, next, done
+         start, next, done, ndims
   import Base.LinAlg: Cholesky
   import Calculus: gradient
   import Compose: Context, context, cm, gridstack, inch, MeasureOrNumber, mm,
@@ -56,7 +56,7 @@ module Mamba
   #################### Variate Types ####################
 
   const ScalarVariateType = Real
-  abstract type ArrayVariateVals{SVT,N} <: DenseArray{SVT, N} end #where SVT <: Real #but this constraint cannot be expressed in Julia
+  const ArrayVariateVals{SVT,N} = Array{SVT, N} #where SVT <: Real #but this constraint cannot be expressed in Julia
   abstract type DictVariateVals{SVT,K} <: Associative{K, SVT} end #where SVT <: Real #but this constraint cannot be expressed in Julia
 
 
@@ -256,9 +256,9 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
     hasinits::Bool
   end
 
-  const Model{SVT} = AbstractModel{ArrayVariateVals{SVT}}
+  const Model{SVT} = AbstractModel{ArrayVariateVals{SVT,1}}
 
-  const ModelState = AbstractModelState{ArrayVariateVals{Float64}}
+  const ModelState = AbstractModelState{ArrayVariateVals{Float64,1}}
 
   const ElasticModel{SVT} = AbstractModel{DictVariateVals{SVT,Tuple}}
 
