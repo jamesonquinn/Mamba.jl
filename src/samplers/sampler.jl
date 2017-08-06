@@ -29,13 +29,7 @@ end
 type WithIter end
 
 function SamplerVariate{VS,T}(block::SamplingBlock{M}, pargs...; kargs...) where M where VS where T<:SamplerTune
-  println("qqqq sampler.jl line 31")
-  println(pargs)
   m = block.model
-  println("qqqq2 sampler.jl line 34")
-  println(@which SamplerVariate{vstype(M),T}(unlist(block), m.samplers[block.index], m.iter, pargs...;
-                 kargs...))
-  println("QqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQq")
   SamplerVariate(
     #{vstype(M),T}
     WithIter, unlist(block), m.samplers[block.index], pargs...;
@@ -46,13 +40,9 @@ function SamplerVariate{VS<:AbstractVariateVals,T<:SamplerTune}(wi::Type{WithIte
                                                  s::Sampler{T}, pargs...;
                                                  iter::Integer=1, kargs...)
   if iter == 1
-    println("first time")
-    println(pargs)
     v = SamplerVariate{VS,T}(x, pargs...; kargs...)
     s.tune = v.tune
   else
-    println("not first time")
-    println(pargs)
     v = SamplerVariate{VS,T}(x, s.tune)
   end
   v

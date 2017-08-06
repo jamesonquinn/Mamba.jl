@@ -341,7 +341,6 @@ function setinits!(s::DictStochastic, m::ElasticModel, x::Real)
 end
 
 function setinits!(s::DictStochastic, m::ElasticModel, x)
-  #print(string("myvaltype is ",string(myvaltype(s))," and ",x,"\n\n\n")) #qqqq
   vtype = myvaltype(s)
   s.value = VecDictVariateVals{vtype}([vtype(xi) for xi in x])
   s.distr = s.eval(m)

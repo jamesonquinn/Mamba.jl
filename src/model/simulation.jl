@@ -138,7 +138,6 @@ function unlist{SVT}(m::ElasticModel{SVT}, nodekeys::Vector{Symbol}, transform::
     SVT(v)
   end
   function fixtype(v)
-    #println("qqqq fixtype; v: ", v)
     VecDictVariateVals{SVT}(Vector{LeafOrBranch{SVT}}([fixtype(sv) for sv in v]))
   end
   SymDictVariateVals{SVT}(Dict{Symbol,LeafOrBranch{SVT}}(key => fixtype(unlist(m[key], transform)) for key in nodekeys))

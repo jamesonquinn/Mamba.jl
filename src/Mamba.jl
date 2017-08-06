@@ -210,12 +210,7 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
 
     function SamplerVariate{VS,T}(x::VS, pargs...; kargs...) where VS<:AbstractVariateVals where T<:SamplerTune
       value = convert(Vector{Float64}, x)
-      println("qqqq13", pargs)
-      println(length(pargs))
-      println("more")
-      println(pargs)
       t = T(value, pargs...; kargs...)
-      println("qqqq14", kargs)
       SamplerVariate{VS,T}(value, t)
     end
   end

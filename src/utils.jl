@@ -25,8 +25,6 @@ function modelexprsrc(f::Function, literalargs::UofVofTs)
   ccall(:jl_fill_argnames, Void, (Any, Any), m.source, argnames)
 
   fkeys = Symbol[argnames[2:end]...]
-  #println(m.sig.parameters[2:end]," qqqq modelexprsrc1")
-  #println([(Symbol[argnames[i]],typeof(m.sig.parameters[i]),m.sig.parameters[i]) for i in 2:length(argnames)]," qqqq modelexprsrc2")
   if isa(m.sig, UnionAll)
     msig = m.sig.body
   else
@@ -41,8 +39,8 @@ function modelexprsrc(f::Function, literalargs::UofVofTs)
     if i != 0
       if ftypes[i] <: T
         push!(literalinds, i)
-      else #qqqq remove
-        println(string("not literalinds: ",key," ",i," ",i != 0 && ftypes[i]," ",T)) #qqqq
+      else
+        println(string("not literalinds: ",key," ",i," ",i != 0 && ftypes[i]," ",T)) #TODO: better error reporting, remove
       end
     end
   end
