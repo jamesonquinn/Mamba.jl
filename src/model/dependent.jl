@@ -178,6 +178,7 @@ NumOrVVal = Union{Number, AbstractVariateVals}
 
 macro fixop(op)
   return :( $op(x::NumOrVVal,y::NumOrVVal) = $op(promote(x,y)...) )
+end
 for op in [+,-,*,/,^]
   @fixop(op)
 end
