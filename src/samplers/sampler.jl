@@ -96,16 +96,16 @@ end
 
 #################### Simulation Methods ####################
 
-function gradlogpdf!{T<:Real}(block::SamplingBlock, x::AbstractArray{T},
+function gradlogpdf!{T<:ScalarVariateType}(block::SamplingBlock, x::AbstractVariateVals{T},
                               dtype::Symbol=:forward)
   gradlogpdf!(block.model, x, block.index, block.transform, dtype=dtype)
 end
 
-function logpdf!{T<:Real}(block::SamplingBlock, x::AbstractArray{T})
+function logpdf!{T<:ScalarVariateType}(block::SamplingBlock, x::AbstractVariateVals{T})
   logpdf!(block.model, x, block.index, block.transform)
 end
 
-function logpdfgrad!{T<:Real}(block::SamplingBlock, x::AbstractVector{T},
+function logpdfgrad!{T<:ScalarVariateType}(block::SamplingBlock, x::AbstractVariateVals{T},
                               dtype::Symbol)
   grad = gradlogpdf!(block, x, dtype)
   logf = logpdf!(block, x)

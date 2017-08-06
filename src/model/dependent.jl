@@ -154,6 +154,33 @@ function setmonitor!(d::AbstractElasticDependent, monitor::Vector{Int})
     d
 end
 
+#################### Conversions ###############################
+
+function convert{SVT<:ScalarVariateType}(T::Type{Vector{SVT}}, v::VecDictVariateVals)
+  convert(T,v.vals) #Works only if all values are scalars
+end
+
+function convert{SVT<:ScalarVariateType}(T::Type{SVT}, v::VecDictVariateVals)
+  length(v.vals) == 1 || throw(BoundsError())
+  vec = convert(Vector{T},v.vals) #Works only if all values are scalars
+  vec[1]
+end
+
+function flatten{SVT<:ScalarVariateType}(v::VecDictVariateVals{SVT})
+  convert(Vector{SVT},v)
+end
+
+function promote_rule{SVT<:ScalarVariateType,N}(::Type{Mamba.VecDictVariateVals{SVT}}, ::Type{Array{SVT,N}})
+  Array{SVT,N}
+end
+
+NumOrVVal = Union{Number, AbstractVariateVals}
+
+macro fixop(op)
+  return :( $op(x::NumOrVVal,y::NumOrVVal) = $op(promote(x,y)...) )
+for op in [+,-,*,/,^]
+  @fixop(op)
+end
 
 #################### Distribution Fallbacks ####################
 

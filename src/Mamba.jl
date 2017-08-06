@@ -5,7 +5,8 @@ module Mamba
   #################### Imports ####################
 
   import Base: cor, dot, valtype, getindex, get, length, keys, setindex!,
-         start, next, done, ndims
+         start, next, done, ndims, convert, promote_rule,
+         +, -, *, /, ^
   import Base.LinAlg: Cholesky
   import Calculus: gradient
   import Compose: Context, context, cm, gridstack, inch, MeasureOrNumber, mm,
@@ -208,8 +209,13 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
       validate(v)
     end
 
-    function SamplerVariate{VS,T}(x::VS, pargs...; kargs...) where VS<:AbstractVariateVals where T<:SamplerTune
+    function SamplerVariate{VS,T}(x::VS, pargs...; doconvert::String="true", kargs...) where VS<:ArrayVariateVals where T<:SamplerTune
       value = convert(Vector{Float64}, x)
+      SamplerVariate(value,pargs...; doconvert=false, kargs...)
+    end
+
+
+    function SamplerVariate{VS,T}(value::VS, pargs...; doconvert::Bool=false, kargs...) where VS<:AbstractVariateVals where T<:SamplerTune
       t = T(value, pargs...; kargs...)
       SamplerVariate{VS,T}(value, t)
     end
@@ -217,20 +223,7 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
 
   const FlatSamplerVariate{T} = SamplerVariate{VectorVariateVals{Float64},T}
 
-  type DictSamplerVariate{K,T} <: AbstractSamplerVariate{DictVariateVals{Float64,K},T}
-      value::DictVariateVals{Float64,K}
-      tune::T
-      #
-      # function DictSamplerVariate{T<:SamplerTune}(x::Associative, tune::T)
-      #   v = new{typeof(first(keys(x))),T,typeof(x)}(x, tune)
-      #   validate(v)
-      # end
-      #
-      # function DictSamplerVariate{T<:SamplerTune}(x::Associative, pargs...; kargs...)
-      #   value = x #convert(Vector{Float64}, x)
-      #   DictSamplerVariate{typeof(first(keys(x))),T}(value, T(value, pargs...; kargs...))
-      # end
-  end
+  const DictSamplerVariate{T} = SamplerVariate{DictVariateVals{Float64,Tuple},T}
 
 
   #################### Model Types ####################

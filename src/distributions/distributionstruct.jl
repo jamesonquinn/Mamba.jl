@@ -137,6 +137,10 @@ end
 
 logpdf(d::Distribution, x, transform::Bool) = logpdf(d, x)
 
+function logpdf_sub(d::Distribution, x::DictVariateVals, transform::Bool)
+  logpdf_sub(d, flatten(x), transform)
+end
+
 function logpdf_sub(d::Distribution, x, transform::Bool)
   insupport(d, x) ? logpdf(d, x, transform) : -Inf
 end

@@ -74,7 +74,7 @@ function logpdf{T<:Real}(m::AbstractModel, x::AbstractArray{T}, block::Integer=0
   lp
 end
 
-function logpdf!{T<:Real}(m::AbstractModel, x::AbstractArray{T}, block::Integer=0,
+function logpdf!{T<:ScalarVariateType}(m::AbstractModel, x::AbstractVariateVals{T}, block::Integer=0,
                           transform::Bool=false)
   params = keys(m, :block, block)
   targets = keys(m, :target, block)
