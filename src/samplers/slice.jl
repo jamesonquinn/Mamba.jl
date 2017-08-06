@@ -24,8 +24,8 @@ type SliceTune{F<:SliceForm} <: SamplerTune
 end
 
 
-const SliceUnivariate = FlatSamplerVariate{SliceTune{Univariate}}
-const SliceMultivariate = FlatSamplerVariate{SliceTune{Multivariate}}
+const SliceUnivariate = SamplerVariate{VS,SliceTune{Univariate}} where VS
+const SliceMultivariate = SamplerVariate{VS,SliceTune{Multivariate}} where VS
 
 validate{F<:SliceForm}(v::SamplerVariate{SliceTune{F}}) =
   validate(v, v.tune.width)
@@ -46,13 +46,14 @@ function Slice{T<:Real, F<:SliceForm}(params::ElementOrVector{Symbol},
                                       width::ElementOrVector{T},
                                       ::Type{F}=Multivariate;
                                       transform::Bool=false)
+  tunetype = SliceTune{F}
   samplerfx = function(model::M, block::Integer) where M <: AbstractModel
     block = SamplingBlock{M}(model, block, transform)
-    v = SamplerVariate{vstype(model),typeof(width),typeof(block)}(block, width)
-    sample!(v, x -> logpdf!(block, x))
+    v = SamplerVariate{vstype(model),tunetype}(block, width)
+    samplee!(v, x -> logpdf!(block, x))
     relist(block, v)
   end
-  Sampler(params, samplerfx, SliceTune{F}())
+  Sampler(params, samplerfx, tunetype())
 end
 
 
@@ -61,7 +62,7 @@ end
 sample!(v::Union{SliceUnivariate, SliceMultivariate}) = sample!(v, v.tune.logf)
 
 
-function sample!(v::SliceUnivariate, logf::Function)
+function samplee!(v::SliceUnivariate, logf::Function)
   logf0 = logf(v.value)
 
   n = length(v.value)
@@ -90,7 +91,7 @@ function sample!(v::SliceUnivariate, logf::Function)
 end
 
 
-function sample!(v::SliceMultivariate, logf::Function)
+function samplee!(v::SliceMultivariate, logf::Function)
   p0 = logf(v.value) + log(rand())
 
   n = length(v.value)

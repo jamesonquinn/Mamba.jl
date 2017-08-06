@@ -62,3 +62,12 @@ describe(sim)
 ## Posterior Predictive Distribution
 ppd = predict(sim, :y)
 describe(ppd)
+
+
+
+
+
+
+
+
+#.

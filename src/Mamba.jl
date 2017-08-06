@@ -196,41 +196,45 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
 
   abstract type AbstractSamplingBlock end
 
-  const Blockish = Union{AbstractSamplingBlock, Variate, ScalarVariateType}
+  abstract type (AbstractSamplerVariate{VS<:AbstractVariateVals,T<:SamplerTune}
+          <: Variate{VS}) end
 
-  abstract type (AbstractSamplerVariate{VS<:AbstractVariateVals,T,B<:Blockish}
-          <: Variate{VS}) end #where B<:AbstractSamplingBlock{VS} where T<:SamplerTune
-
-  type SamplerVariate{VS,T,B} <: AbstractSamplerVariate{VS,T,B}
-    value::B
+  type SamplerVariate{VS,T<:SamplerTune} <: AbstractSamplerVariate{VS,T}
+    value::VS
     tune::T
 
-    function SamplerVariate{VS,T,B}(x::B, tune::T) where T where VS<:AbstractVariateVals where B
-      v = new{VS,T,B}(x, tune)
+    function SamplerVariate{VS,T}(x::VS, tune::T) where VS<:AbstractVariateVals where T<:SamplerTune
+      v = new{VS,T}(x, tune)
       validate(v)
     end
 
-    function SamplerVariate{VS,T,B}(x::B, pargs...; kargs...) where T where VS<:AbstractVariateVals where B
+    function SamplerVariate{VS,T}(x::VS, pargs...; kargs...) where VS<:AbstractVariateVals where T<:SamplerTune
       value = convert(Vector{Float64}, x)
-      SamplerVariate{VS,T,B}(value, T(value, pargs...; kargs...))
+      println("qqqq13", pargs)
+      println(length(pargs))
+      println("more")
+      println(pargs)
+      t = T(value, pargs...; kargs...)
+      println("qqqq14", kargs)
+      SamplerVariate{VS,T}(value, t)
     end
   end
 
-  const FlatSamplerVariate{T,B} = SamplerVariate{VectorVariateVals{Float64},T,B}
+  const FlatSamplerVariate{T} = SamplerVariate{VectorVariateVals{Float64},T}
 
-  type DictSamplerVariate{K,T<:SamplerTune,B<:Blockish} <: AbstractSamplerVariate{DictVariateVals{Float64,K},T,B}
+  type DictSamplerVariate{K,T} <: AbstractSamplerVariate{DictVariateVals{Float64,K},T}
       value::DictVariateVals{Float64,K}
       tune::T
-
-      function DictSamplerVariate{T}(x::Associative, tune::T) where T<:SamplerTune
-        v = new{typeof(first(keys(x))),T,typeof(x)}(x, tune)
-        validate(v)
-      end
-
-      function DictSamplerVariate{T}(x::Associative, pargs...; kargs...) where T<:SamplerTune
-        value = x #convert(Vector{Float64}, x)
-        DictSamplerVariate{T}(value, T(value, pargs...; kargs...))
-      end
+      #
+      # function DictSamplerVariate{T<:SamplerTune}(x::Associative, tune::T)
+      #   v = new{typeof(first(keys(x))),T,typeof(x)}(x, tune)
+      #   validate(v)
+      # end
+      #
+      # function DictSamplerVariate{T<:SamplerTune}(x::Associative, pargs...; kargs...)
+      #   value = x #convert(Vector{Float64}, x)
+      #   DictSamplerVariate{typeof(first(keys(x))),T}(value, T(value, pargs...; kargs...))
+      # end
   end
 
 

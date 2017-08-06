@@ -5,29 +5,32 @@ const depfxargs = [(:model, Mamba.AbstractModel)]
 function myvaltype(x::Type{SVT}) where SVT<:ScalarVariateType
   myvaltype(SVT,ScalarVariateType)
 end
-function myvaltype{SVT}(x::Type{SVT},::Type{ScalarVariateType})
+function myvaltype(x::Type{SVT},::Type{ScalarVariateType}) where SVT
   SVT
 end
-function myvaltype{SVT}(x::VectorVariateVals{SVT})
+function myvaltype(x::VectorVariateVals{SVT}) where SVT
   SVT
 end
-function myvaltype{SVT}(x::DictVariateVals{SVT})
+function myvaltype(x::DictVariateVals{SVT}) where SVT
   SVT
 end
-function myvaltype{VS}(x::Variate{VS})
+function myvaltype(x::Variate{VS}) where VS
   myvaltype(VS)
 end
 function myvaltype(x::Type{X}) where X<:Variate
   myvaltype(V,Variate)
 end
-function myvaltype{SVT}(x::Type{Variate{SVT}},::Type{Variate})
+function myvaltype(x::Type{Variate{SVT}},::Type{Variate}) where SVT
   SVT
 end
-function myvaltype{V}(x::AbstractModel{V})
+function myvaltype(x::AbstractModel{V}) where V
   myvaltype(V)
 end
 
-function vstype{V}(x::AbstractModel{V})
+function vstype(x::Y) where Y<:AbstractModel{V} where V
+  V
+end
+function vstype(x::Type{Y}) where Y<:AbstractModel{V} where V
   V
 end
 

@@ -23,25 +23,37 @@ function Sampler(params::Vector{Symbol}, f::Function, tune::Any=Dict())
   Sampler(params, modelfx(samplerfxargs, f), tune, Symbol[])
 end
 
+# function SamplerVariate{T<:SamplerTune, U<:Real}(x::AbstractVector{U}, tune::T)
+#   SamplerVariate{T}(x, tune)
+# end
+type WithIter end
 
-function SamplerVariate{VS<:AbstractVariateVals, T<:SamplerTune,B<:AbstractSamplingBlock}(x::B, tune::T)
-  SamplerVariate{T}(x, tune)
-end
-
-function SamplerVariate{B<:AbstractSamplingBlock}(block::B, pargs...; kargs...)
+function SamplerVariate{VS,T}(block::SamplingBlock{M}, pargs...; kargs...) where M where VS where T<:SamplerTune
+  println("qqqq sampler.jl line 31")
+  println(pargs)
   m = block.model
-  SamplerVariate{vstype(m)}(unlist(block), m.samplers[block.index], m.iter, pargs...;
-                 kargs...)
+  println("qqqq2 sampler.jl line 34")
+  println(@which SamplerVariate{vstype(M),T}(unlist(block), m.samplers[block.index], m.iter, pargs...;
+                 kargs...))
+  println("QqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQqQq")
+  SamplerVariate(
+    #{vstype(M),T}
+    WithIter, unlist(block), m.samplers[block.index], pargs...;
+                 iter=m.iter, kargs...)
 end
 
-function SamplerVariate{VS<:AbstractVariateVals, T<:SamplerTune, B}(x::B,
-                                                 s::Sampler{T}, iter::Integer,
-                                                 pargs...; kargs...)
+function SamplerVariate{VS<:AbstractVariateVals,T<:SamplerTune}(wi::Type{WithIter}, x::VS,
+                                                 s::Sampler{T}, pargs...;
+                                                 iter::Integer=1, kargs...)
   if iter == 1
-    v = FlatSamplerVariate{VS,T,B}(x, pargs...; kargs...)
+    println("first time")
+    println(pargs)
+    v = SamplerVariate{VS,T}(x, pargs...; kargs...)
     s.tune = v.tune
   else
-    v = SamplerVariate{VS}(x, s.tune)
+    println("not first time")
+    println(pargs)
+    v = SamplerVariate{VS,T}(x, s.tune)
   end
   v
 end
