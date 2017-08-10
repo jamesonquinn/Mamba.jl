@@ -55,7 +55,7 @@ function mcmc_master!{ST}(m::AbstractModel{ST}, window::UnitRange{Int}, burnin::
   model = results[1][2]
   model.states = ModelState[results[k][3] for k in sortperm(chains)]
 
-  ModelChains(cat(3, sims...), model)
+  ModelChains(cat(2, sims...), model) #qq
 end
 
 
@@ -75,7 +75,7 @@ function mcmc_worker!(args::Vector)
   for i in window
     sample!(m)
     if i > burnin && (i - burnin) % thin == 0
-      sim[i, :, 1] = unlist(m, true)
+      sim[i, 1, :] = unlist(m, true)
     end
     next!(meter)
   end

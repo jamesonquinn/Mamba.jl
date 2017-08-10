@@ -154,6 +154,11 @@ function logpdf_sub(d::UnivariateDistribution, X::AbstractArray,
   lp
 end
 
+function logpdf_sub(D::Array{UnivariateDistribution}, X::DictVariateVals,
+                    transform::Bool)
+  logpdf_sub(D, flatten(X), transform)
+end
+
 function logpdf_sub(D::Array{UnivariateDistribution}, X::AbstractArray,
                     transform::Bool)
   lp = 0.0

@@ -35,8 +35,8 @@ theta2 = SliceMultivariate([0.0, 0.0, 0.0], width, logf)
 for i in 1:n
   sample!(theta1)
   sample!(theta2)
-  sim1[i, :, 1] = [theta1[1:2]; exp(theta1[3])]
-  sim2[i, :, 1] = [theta2[1:2]; exp(theta2[3])]
+  sim1[i, 1, :] = [theta1[1:2]; exp(theta1[3])]
+  sim2[i, 1, :] = [theta2[1:2]; exp(theta2[3])]
 end
 describe(sim1)
 describe(sim2)

@@ -32,6 +32,6 @@ theta = RWMVariate([0.0, 0.0, 0.0], [0.5, 0.25, 1.0], logf,
                    proposal = SymUniform)
 for i in 1:n
   sample!(theta)
-  sim[i, :, 1] = [theta[1:2]; exp(theta[3])]
+  sim[i, 1, :] = [theta[1:2]; exp(theta[3])]
 end
 describe(sim)

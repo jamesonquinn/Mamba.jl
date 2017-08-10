@@ -38,10 +38,6 @@ Base.getindex(m::AbstractModel, nodekey::Symbol) = m.nodes[nodekey]
 
 function Base.setindex!(m::AbstractModel, value, nodekey::Symbol)
   node = m[nodekey]
-  println("setindex! ",nodekey)
-  println(typeof(node))
-  println(value)
-  println(node)
   if isa(node, AbstractDependent)
     node.value = value
   else

@@ -83,13 +83,13 @@ end
 function autocorplot(c::AbstractChains;
                      maxlag::Integer=round(Int, 10 * log10(length(c.range))),
                      legend::Bool=false, na...)
-  nrows, nvars, nchains = size(c.value)
+  nrows, nchains, nvars = size(c.value)
   plots = Array{Plot}(nvars)
   pos = legend ? :right : :none
   lags = 0:maxlag
   ac = autocor(c, lags=collect(lags))
   for i in 1:nvars
-    plots[i] = plot(y=vec(ac.value[i, :, :]),
+    plots[i] = plot(y=vec(ac.value[i, :, :]), #qq
                     x=repeat(collect(lags * step(c)), outer=[nchains]),
                     Geom.line(),
                     color=repeat(c.chains, inner=[length(lags)]),
@@ -103,23 +103,23 @@ end
 
 function barplot(c::AbstractChains; legend::Bool=false,
                  position::Symbol=:stack, na...)
-  nrows, nvars, nchains = size(c.value)
+  nrows, nchains, nvars = size(c.value)
   plots = Array{Plot}(nvars)
   pos = legend ? :right : :none
   for i in 1:nvars
-    S = unique(c.value[:, i, :])
+    S = unique(c.value[:, :, i]) #qq
     n = length(S)
     x = repmat(S, 1, nchains)
     y = zeros(n, nchains)
     for j in 1:nchains
-      m = countmap(c.value[:, i, j])
+      m = countmap(c.value[:, j, i]) #qq
       for k in 1:n
         if S[k] in keys(m)
           y[k, j] = m[S[k]] / nrows
         end
       end
     end
-    ymax = maximum(position == :stack ? mapslices(sum, y, 2) : y)
+    ymax = maximum(position == :stack ? mapslices(sum, y, 3) : y) #qq
     plots[i] = plot(x=vec(x), y=vec(y), Geom.bar(position=position),
                     color=repeat(c.chains, inner=[n]),
                     Scale.color_discrete(), Guide.colorkey("Chain"),
@@ -132,17 +132,17 @@ function barplot(c::AbstractChains; legend::Bool=false,
 end
 
 function contourplot(c::AbstractChains; bins::Integer=100, na...)
-  nrows, nvars, nchains = size(c.value)
+  nrows, nchains, nvars = size(c.value)
   plots = Plot[]
   offset = 1e4 * eps()
   n = nrows * nchains
   for i in 1:(nvars - 1)
-    X = c.value[:, i, :]
+    X = c.value[:, :, i] #qq
     qx = linspace(minimum(X) - offset, maximum(X) + offset, bins + 1)
     mx = map(k -> mean([qx[k], qx[k + 1]]), 1:bins)
     idx = Int[findfirst(k -> qx[k] <= x < qx[k + 1], 1:bins) for x in X]
     for j in (i + 1):nvars
-      Y = c.value[:, j, :]
+      Y = c.value[:, :, j] #qq
       qy = linspace(minimum(Y) - offset, maximum(Y) + offset, bins + 1)
       my = map(k -> mean([qy[k], qy[k + 1]]), 1:bins)
       idy = Int[findfirst(k -> qy[k] <= y < qy[k + 1], 1:bins) for y in Y]
@@ -162,14 +162,14 @@ end
 
 function densityplot(c::AbstractChains; legend::Bool=false,
                      trim::Tuple{Real, Real}=(0.025, 0.975), na...)
-  nrows, nvars, nchains = size(c.value)
+  nrows, nchains, nvars = size(c.value)
   plots = Array{Plot}(nvars)
   pos = legend ? :right : :none
   for i in 1:nvars
     val = Array{Vector{Float64}}(nchains)
     for j in 1:nchains
-      qs = quantile(c.value[:, i, j], [trim[1], trim[2]])
-      val[j] = c.value[qs[1] .<= c.value[:, i, j] .<= qs[2], i, j]
+      qs = quantile(c.value[:, j, i], [trim[1], trim[2]]) #qq
+      val[j] = c.value[qs[1] .<= c.value[:, j, i] .<= qs[2], i, j] #qq
     end
     plots[i] = plot(x=[val...;], Geom.density(),
                     color=repeat(c.chains, inner=[length(c.range)]),
@@ -182,12 +182,12 @@ function densityplot(c::AbstractChains; legend::Bool=false,
 end
 
 function meanplot(c::AbstractChains; legend::Bool=false, na...)
-  nrows, nvars, nchains = size(c.value)
+  nrows, nchains, nvars = size(c.value)
   plots = Array{Plot}(nvars)
   pos = legend ? :right : :none
   val = cummean(c.value)
   for i in 1:nvars
-    plots[i] = plot(y=vec(val[:, i, :]),
+    plots[i] = plot(y=vec(val[:, :, i]), #qq
                     x=repeat(collect(c.range), outer=[nchains]),
                     Geom.line(),
                     color=repeat(c.chains, inner=[length(c.range)]),
@@ -203,17 +203,17 @@ function mixeddensityplot(c::AbstractChains;
                           barbounds::Tuple{Real, Real}=(0, Inf), args...)
   plots = Array{Plot}(size(c, 2))
   discrete = indiscretesupport(c, barbounds)
-  plots[discrete] = plot(c[:, discrete, :], :bar; args...)
+  plots[discrete] = plot(c[:, :, discrete], :bar; args...) #qq
   plots[.!discrete] = plot(c[:, .!discrete, :], :density; args...)
   return plots
 end
 
 function traceplot(c::AbstractChains; legend::Bool=false, na...)
-  nrows, nvars, nchains = size(c.value)
+  nrows, nchains, nvars = size(c.value)
   plots = Array{Plot}(nvars)
   pos = legend ? :right : :none
   for i in 1:nvars
-    plots[i] = plot(y=vec(c.value[:, i, :]),
+    plots[i] = plot(y=vec(c.value[:, :, i]), #qq
                     x=repeat(collect(c.range), outer=[nchains]),
                     Geom.line(),
                     color=repeat(c.chains, inner=[length(c.range)]),

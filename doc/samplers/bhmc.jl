@@ -24,6 +24,6 @@ sim = Chains(t, p, names = map(i -> "gamma[$i]", 1:p))
 gamma = BHMCVariate(zeros(p), (2 * p + 0.5) * pi, logf)
 for i in 1:t
   sample!(gamma)
-  sim[i, :, 1] = gamma
+  sim[i, 1, :] = gamma
 end
 describe(sim)

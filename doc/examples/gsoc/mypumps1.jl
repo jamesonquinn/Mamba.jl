@@ -7,11 +7,12 @@ pumps = Dict{Symbol, Any}(
 )
 pumps[:N] = length(pumps[:y])
 
+StochType = Stochastic
 
 ## Model Specification
 model = Model(
 
-  y = Stochelastic(1,
+  y = StochType(1,
     (theta, t, N) ->
       UnivariateDistribution[
         begin
@@ -23,7 +24,7 @@ model = Model(
     false
   ),
 
-  theta = Stochelastic(1,
+  theta = StochType(1,
     (alpha, beta) -> Gamma(alpha, 1 / beta),
     true
   ),
@@ -55,13 +56,17 @@ setsamplers!(model, scheme)
 
 
 ## MCMC Simulations
-sim = mcmc(model, pumps, inits, 200, burnin=25, thin=2, chains=2)
+sim = mcmc(model, pumps, inits, 200, burnin=25, thin=1, chains=2)
 describe(sim)
 
 
 ## Posterior Predictive Distribution
 ppd = predict(sim, :y)
 describe(ppd)
+
+
+
+
 
 
 

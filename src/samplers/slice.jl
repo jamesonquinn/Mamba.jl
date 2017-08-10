@@ -65,25 +65,24 @@ sample!(v::Union{SliceUnivariate, SliceMultivariate}) = sample!(v, v.tune.logf)
 function sample!(v::SliceUnivariate, logf::Function)
   logf0 = logf(v.value)
 
-  n = length(v.value)
-  lower = v.value - v.tune.width .* rand(n)
-  upper = lower + v.tune.width
+  for k in keys(v.value)
+    x = v.value[k...]
+    lower = x - v.tune.width * rand()
+    upper = lower + v.tune.width
 
-  for i in 1:n
     p0 = logf0 + log(rand())
 
-    x = v.value[i]
-    v.value[i] = rand(Uniform(lower[i], upper[i]))
+    v.value[k...] = rand(Uniform(lower, upper))
     while true
       logf0 = logf(v.value)
       logf0 < p0 || break
-      value = v.value[i]
+      value = v.value[k...]
       if value < x
-        lower[i] = value
+        lower = value
       else
-        upper[i] = value
+        upper = value
       end
-      v.value[i] = rand(Uniform(lower[i], upper[i]))
+      v.value[k...] = rand(Uniform(lower, upper))
     end
   end
 

@@ -76,8 +76,7 @@ end
 Normalish = Union{Normal, DualNormal, GossipyNormal}
 
 DNum = Union{Dual, Float64}
-function logpdf(d::Normalish, v::Dual)
-  println("Computing pdf for $(d.μ), $(d.σ), $(v)")
+function logpdf(d::Normalish, v::Dual) #qqqq still needed??
   -log(2)-log(π)-log(d.σ)-(v-d.μ)^2/2/d.σ
 end
 

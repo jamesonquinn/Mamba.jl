@@ -38,7 +38,7 @@ theta = NUTSVariate([0.0, 0.0, 0.0], logfgrad)
 for i in 1:n
   sample!(theta, adapt = (i <= burnin))
   if i > burnin
-    sim[i, :, 1] = [theta[1:2]; exp(theta[3])]
+    sim[i, 1, :] = [theta[1:2]; exp(theta[3])]
   end
 end
 describe(sim)

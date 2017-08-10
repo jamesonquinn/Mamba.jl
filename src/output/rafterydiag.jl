@@ -48,10 +48,10 @@ end
 
 function rafterydiag(c::AbstractChains; q::Real=0.025, r::Real=0.005,
                      s::Real=0.95, eps::Real=0.001)
-  _, p, m = size(c.value)
+  _, m, p = size(c.value) #qq
   vals = Array{Float64}(p, 5, m)
   for j in 1:p, k in 1:m
-    vals[j, :, k] = rafterydiag(c.value[:, j, k], q=q, r=r, s=s, eps=eps,
+    vals[j, k, :] = rafterydiag(c.value[:, j, k], q=q, r=r, s=s, eps=eps, #qq
                                 range=c.range)
   end
   hdr = header(c) * "\nRaftery and Lewis Diagnostic:\n" *

@@ -1,25 +1,25 @@
 #################### Gelman, Rubin, and Brooks Diagnostics ####################
 
 function gelmandiag(c::AbstractChains; alpha::Real=0.05, mpsrf::Bool=false,
-                    transform::Bool=false)
-  n, p, m = size(c.value)
+                    transform::Bool=false) #qq
+  n, m, p = size(c.value)
   m >= 2 ||
     throw(ArgumentError("less than 2 chains supplied to gelman diagnostic"))
 
   psi = transform ? link(c) : c.value
 
-  S2 = mapslices(cov, psi, [1, 2])
-  W = squeeze(mapslices(mean, S2, 3), 3)
+  S2 = mapslices(cov, psi, [1, 2]) #qq
+  W = squeeze(mapslices(mean, S2,3), 2) #qq
 
-  psibar = reshape(mapslices(mean, psi, 1), p, m)'
+  psibar = reshape(mapslices(mean, psi, 1), p, m)' #qq?
   B = n * cov(psibar)
 
   w = diag(W)
   b = diag(B)
-  s2 = reshape(mapslices(diag, S2, [1, 2]), p, m)'
-  psibar2 = vec(mapslices(mean, psibar, 1))
+  s2 = reshape(mapslices(diag, S2, [1, 2]), p, m)' #qq
+  psibar2 = vec(mapslices(mean, psibar, 1)) #qq
 
-  var_w = vec(mapslices(var, s2, 1)) / m
+  var_w = vec(mapslices(var, s2, 1)) / m #qq
   var_b = (2.0 / (m - 1)) * b.^2
   var_wb = (n / m) * (diag(cov(s2, psibar.^2))
                       - 2.0 * psibar2 .* diag(cov(s2, psibar)))

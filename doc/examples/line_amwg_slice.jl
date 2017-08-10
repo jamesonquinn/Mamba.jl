@@ -37,6 +37,6 @@ logs2 = SliceMultivariate([0.0], 5.0, logf_logs2)
 for i in 1:n
   sample!(beta, adapt = (i <= burnin))
   sample!(logs2)
-  sim[i, :, 1] = [beta; exp.(logs2)]
+  sim[i, 1, :] = [beta; exp.(logs2)]
 end
 describe(sim)

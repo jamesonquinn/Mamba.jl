@@ -22,7 +22,7 @@ sim = Chains(t, k, names = map(i -> "rho[$i]", 1:k))
 rho = SliceSimplexVariate(fill(1 / k, k), logf)
 for i in 1:t
   sample!(rho)
-  sim[i, :, 1] = rho
+  sim[i, 1, :] = rho
 end
 describe(sim)
 

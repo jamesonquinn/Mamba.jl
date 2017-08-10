@@ -74,7 +74,7 @@ function keys(nd::NestedDictVariateVals)
     if typeof(kv[2]) <: ScalarVariateType
       append!(mykeys,[(kv[1],)])
     else
-      append!(mykeys,[tuple(kv[1],k) for k in keys(kv[2])])
+      append!(mykeys,[(kv[1],k...) for k in keys(kv[2])])
     end
   end
   mykeys
@@ -95,11 +95,33 @@ end
 function ndims(ndd::AbstractElasticDependent)
   k = keys(ndd)
   if length(k) > 0
-    print(k)
     return length(k[1])
   else
     return 1 #qqqq this is just a guess
   end
+end
+
+type KeyIter
+  lims::Vector{Int}
+end
+start(k::KeyIter) = fill(1,length(k.lims))
+function next(k::KeyIter,s)
+  rval = (s...)
+  for i in 1:length(s)
+    if s[i]<k.lims[i]
+      s[i] += 1
+      return (rval,s)
+    end
+    s[i] = 1
+  end
+  return (rval,())
+end
+done(k::KeyIter,s) = (s == ())
+length(k::KeyIter) = *(k.lims...)
+letyep(k::KeyIter) = Tuple
+
+function keys(x::VS) where VS<:ArrayVariateVals{SVT,N} where {SVT,N}
+  KeyIter(Int[size(x)...])
 end
 
 function Base.show(io::IO, d::AbstractDependent)
@@ -174,13 +196,16 @@ function promote_rule{SVT<:ScalarVariateType,N}(::Type{Mamba.VecDictVariateVals{
   Array{SVT,N}
 end
 
-NumOrVVal = Union{Number, AbstractVariateVals}
+const NumOrVVal = Union{Number, AbstractVariateVals}
 
-macro fixop(op)
-  return :( $op(x::NumOrVVal,y::NumOrVVal) = $op(promote(x,y)...) )
+function fixop(opp)
+  @eval function ($opp)(x::NumOrVVal,y::NumOrVVal)
+    ($opp)(promote(x,y)...)
+  end
 end
-for op in [+,-,*,/,^]
-  @fixop(op)
+
+for op in [:asdt]
+  fixop(op)
 end
 
 #################### Distribution Fallbacks ####################
@@ -231,11 +256,11 @@ function getindex(X::NestedDictVariateVals,i...)
   if length(i) == 1
     return X.vals[i[1]]
   else
-    return X.vals[i[1]][i[2:end]]
+    return X.vals[i[1]][i[2:end]...]
   end
 end
 
-function ensureIndexReady!(X::NestedDictVariateVals,i::Integer)
+function ensureIndexReady!(X::NestedDictVariateVals,i)
   #generically, do nothing
 end
 
@@ -254,7 +279,7 @@ function setindex!(X::NestedDictVariateVals,v,i...)
     if !haskey(X.vals,i[1])
       X.vals[i[1]] = VecDictVariateVals{typeof(v)}()
     end
-    X.vals[i[1]][i[2:end]] = v
+    X.vals[i[1]][i[2:end]...] = v
   end
 end
 
@@ -338,16 +363,16 @@ end
 #################### Updating ####################
 
 function setinits!(s::AbstractStochastic, m::AbstractModel, x)
-  throw(ArgumentError("incompatible initial value for node : $(s.symbol)"))
+  throw(ArgumentError("incompatible initial value for node : $(s.symbol). s::$(typeof(s)), m::$(typeof(m))"))
 end
 
-function setinits!(s::ScalarStochastic, m::Model, x::Real)
+function setinits!(s::ScalarStochastic, m::AbstractModel, x::Real)
   s.value = convert(myvaltype(s), x)
   s.distr = s.eval(m)
   setmonitor!(s, s.monitor)
 end
 
-function setinits!(s::ArrayStochastic, m::Model, x::DenseArray)
+function setinits!(s::ArrayStochastic, m::AbstractModel, x::DenseArray)
   s.value = convert(typeof(s.value), copy(x))
   s.distr = s.eval(m)
   if !isa(s.distr, UnivariateDistribution) && dims(s) != dims(s.distr)

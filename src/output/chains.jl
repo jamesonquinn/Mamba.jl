@@ -5,7 +5,8 @@
 function Chains{T<:AbstractString}(iters::Integer, params::Integer;
                start::Integer=1, thin::Integer=1, chains::Integer=1,
                names::Vector{T}=AbstractString[])
-  value = Array{Float64}(length(start:thin:iters), params, chains)
+  value = Array{Float64}(length(start:thin:iters), chains, params)
+  println("qqqq ",params,"  ", length(names),size(value))
   fill!(value, NaN)
   Chains(value, start=start, thin=thin, names=names)
 end
@@ -13,7 +14,9 @@ end
 function Chains{T<:Real, U<:AbstractString, V<:Integer}(value::Array{T, 3};
                start::Integer=1, thin::Integer=1,
                names::Vector{U}=AbstractString[], chains::Vector{V}=Int[])
-  n, p, m = size(value)
+  n, m, p = size(value)
+
+  println("qqqq ChainsChainsChains",length(names),size(value))
 
   if isempty(names)
     names = map(i -> "Param$i", 1:p)
@@ -97,13 +100,13 @@ names2inds{T<:AbstractString}(c::AbstractChains, names::Vector{T}) =
 #################### Concatenation ####################
 
 function Base.cat(dim::Integer, c1::AbstractChains, args::AbstractChains...)
-  dim == 1 ? cat1(c1, args...) :
-  dim == 2 ? cat2(c1, args...) :
-  dim == 3 ? cat3(c1, args...) :
+  dim == 1 ? catTime(c1, args...) :
+  dim == 2 ? catChains(c1, args...) :
+  dim == 3 ? catParams(c1, args...) :
     throw(ArgumentError("cannot concatenate along dimension $dim"))
 end
 
-function cat1(c1::AbstractChains, args::AbstractChains...)
+function catTime(c1::AbstractChains, args::AbstractChains...)
   range = c1.range
   for c in args
     last(range) + step(range) == first(c) ||
@@ -126,7 +129,7 @@ function cat1(c1::AbstractChains, args::AbstractChains...)
          chains=chains)
 end
 
-function cat2(c1::AbstractChains, args::AbstractChains...)
+function catParams(c1::AbstractChains, args::AbstractChains...)
   range = c1.range
   all(c -> c.range == range, args) ||
     throw(ArgumentError("chain ranges differ"))
@@ -144,12 +147,12 @@ function cat2(c1::AbstractChains, args::AbstractChains...)
   all(c -> c.chains == chains, args) ||
     throw(ArgumentError("sets of chains differ"))
 
-  value = cat(2, c1.value, map(c -> c.value, args)...)
+  value = cat(3, c1.value, map(c -> c.value, args)...) #qq
   Chains(value, start=first(range), thin=step(range), names=names,
          chains=chains)
 end
 
-function cat3(c1::AbstractChains, args::AbstractChains...)
+function catChains(c1::AbstractChains, args::AbstractChains...)
   range = c1.range
   all(c -> c.range == range, args) ||
     throw(ArgumentError("chain ranges differ"))
@@ -168,11 +171,11 @@ function cat3(c1::AbstractChains, args::AbstractChains...)
       throw(ArgumentError(errStr))
     end
 
-  value = cat(3, c1.value, map(c -> c.value, args)...)
+  value = cat(2, c1.value, map(c -> c.value, args)...) #qq
   Chains(value, start=first(range), thin=step(range), names=names)
 end
 
-Base.hcat(c1::AbstractChains, args::AbstractChains...) = cat(2, c1, args...)
+Base.hcat(c1::AbstractChains, args::AbstractChains...) = cat(3, c1, args...)
 
 Base.vcat(c1::AbstractChains, args::AbstractChains...) = cat(1, c1, args...)
 
@@ -206,12 +209,12 @@ Base.last(c::AbstractChains) = last(c.range)
 #################### Auxilliary Functions ####################
 
 function combine(c::AbstractChains)
-  n, p, m = size(c.value)
+  n, m, p = size(c.value)
   value = Array{Float64}(n * m, p)
   for j in 1:p
     idx = 1
     for i in 1:n, k in 1:m
-      value[idx, j] = c.value[i, j, k]
+      value[idx, j] = c.value[i, k, j]
       idx += 1
     end
   end
@@ -229,7 +232,7 @@ end
 
 function indiscretesupport(c::AbstractChains,
                            bounds::Tuple{Real, Real}=(0, Inf))
-  nrows, nvars, nchains = size(c.value)
+  nrows, nchains, nvars = size(c.value)
   result = Array{Bool}(nvars * (nrows > 0))
   for i in 1:nvars
     result[i] = true
@@ -247,9 +250,9 @@ end
 function link(c::AbstractChains)
   cc = copy(c.value)
   for j in 1:length(c.names)
-    x = cc[:, j, :]
+    x = cc[:, :, j]
     if minimum(x) > 0.0
-      cc[:, j, :] = maximum(x) < 1.0 ? logit(x) : log(x)
+      cc[:, :, j] = maximum(x) < 1.0 ? logit(x) : log(x)
     end
   end
   cc

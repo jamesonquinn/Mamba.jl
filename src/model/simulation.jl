@@ -111,7 +111,7 @@ function unlist(m::AbstractModel, block::Integer=0, transform::Bool=false)
   unlist(m, keys(m, :block, block), transform)
 end
 
-function unlist(m::AbstractModel, monitoronly::Bool) #doesn't work if m::Model !?
+function unlist(m::AbstractModel, monitoronly::Bool)
   f = function(key)
     node = m[key]
     lvalue = unlist(node)
@@ -124,9 +124,10 @@ function unlist(m::ElasticModel, monitoronly::Bool)
   f = function(key)
     node = m[key]
     lvalue = unlist(node)
-    monitoronly ? lvalue[node.monitor] : lvalue
+    r = monitoronly ? lvalue[node.monitor] : lvalue
+    VecDictVariateVals{myvaltype(m)}(r)
   end
-  SymDictVariateVals(k => f(k) for k in keys(m, :dependent))
+  SymDictVariateVals{myvaltype(m)}(k => f(k) for k in keys(m, :dependent))
 end
 
 function unlist(m::Model, nodekeys::Vector{Symbol}, transform::Bool=false)
@@ -140,11 +141,11 @@ function unlist{SVT}(m::ElasticModel{SVT}, nodekeys::Vector{Symbol}, transform::
   function fixtype(v)
     VecDictVariateVals{SVT}(Vector{LeafOrBranch{SVT}}([fixtype(sv) for sv in v]))
   end
-  SymDictVariateVals{SVT}(Dict{Symbol,LeafOrBranch{SVT}}(key => fixtype(unlist(m[key], transform)) for key in nodekeys))
+  SymDictVariateVals{SVT}(key => fixtype(unlist(m[key], transform)) for key in nodekeys)
 end
 
 
-function relist{T<:Real}(m::AbstractModel, x::AbstractArray{T}, block::Integer=0,
+function relist(m::AbstractModel, x, block::Integer=0,
                          transform::Bool=false)
   relist(m, x, keys(m, :block, block), transform)
 end
@@ -164,7 +165,7 @@ function relist{T<:Real}(m::Model, x::AbstractArray{T},
   values
 end
 
-function relist(m::ElasticModel, x,
+function relist(m::AbstractModel, x,
                          nodekeys::Vector{Symbol}, transform::Bool=false)
   x
 end

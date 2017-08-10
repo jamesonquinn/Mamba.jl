@@ -98,6 +98,10 @@ module Mamba
   const LeafOrBranch{SVT} = Union{SVT,NestedDictVariateVals{SVT}} where SVT<:ScalarVariateType
   type SymDictVariateVals{SVT} <: NestedDictVariateVals{SVT}
       vals::Dict{Symbol,LeafOrBranch{SVT}}
+
+      function SymDictVariateVals{SVT}(kv) where SVT<:ScalarVariateType
+        new{SVT}(Dict{Symbol,LeafOrBranch{SVT}}(kv))
+      end
   end
 
   type VecDictVariateVals{SVT} <: NestedDictVariateVals{SVT}
@@ -257,22 +261,25 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
 
   #################### Chains Type ####################
 
-  abstract type AbstractChains end
+  const ChainVal{SVT} = Union{Array{SVT, 3}, Array{DictVariateVals{SVT,Tuple},2}}
 
-  immutable Chains <: AbstractChains
-    value::Array{Float64, 3}
+  abstract type AbstractChains{V} end #where V<:ChainVal
+
+  immutable Chains{V} <: AbstractChains{V} #where V<:ChainVal
+    value::V
     range::Range{Int}
     names::Vector{AbstractString}
     chains::Vector{Int}
   end
 
-  immutable ModelChains <: AbstractChains
-    value::Array{Float64, 3}
+  immutable ModelChains{V} <: AbstractChains{V} #where V<:ChainVal
+    value::V
     range::Range{Int}
     names::Vector{AbstractString}
     chains::Vector{Int}
     model::Model
   end
+
 
 
   #################### Includes ####################

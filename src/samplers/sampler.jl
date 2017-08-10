@@ -116,11 +116,11 @@ function unlist(block::SamplingBlock)
   unlist(block.model, block.index, block.transform)
 end
 
-function relist{T<:Real}(block::SamplingBlock, x::AbstractArray{T})
+function relist{SVT<:ScalarVariateType}(block::SamplingBlock, x::AbstractVariateVals{SVT})
   relist(block.model, x, block.index, block.transform)
 end
 
-function relist{V<:AbstractArray{T} where T<:Real}(block::SamplingBlock, x::Variate{V})
+function relist{V<:Variate}(block::SamplingBlock, x::V)
   relist(block.model, x.value, block.index, block.transform)
 end
 
