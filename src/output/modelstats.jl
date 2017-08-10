@@ -47,7 +47,7 @@ function logpdf(mc::ModelChains,
   ]
   sims = pmap2(logpdf_modelchains_worker, lsts)
 
-  ModelChains(cat(3, sims...), mc.model)
+  ModelChains(cat(2, sims...), mc.model) #qq
 end
 
 
