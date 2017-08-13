@@ -5,7 +5,7 @@ module Mamba
   #################### Imports ####################
 
   import Base: cor, dot, valtype, getindex, get, length, keys, setindex!,
-         start, next, done, ndims, convert, promote_rule,
+         start, next, done, ndims, convert, promote_rule, size, fill!, cat,
          +, -, *, /, ^
   import Base.LinAlg: Cholesky
   import Calculus: gradient
@@ -58,10 +58,12 @@ module Mamba
 
   const ScalarVariateType = Real
   const ArrayVariateVals{SVT,N} = Array{SVT, N} #where SVT <: Real #but this constraint cannot be expressed in Julia
-  abstract type DictVariateVals{SVT,K} <: Associative{K, SVT} end #where SVT <: Real #but this constraint cannot be expressed in Julia
+  abstract type DictVariateVals{SVT} <: Associative{Tuple, SVT} end #where SVT <: Real #but this constraint cannot be expressed in Julia
+
+  type NullDictVariateVals{SVT} <: DictVariateVals{SVT} end
 
 
-  const AbstractVariateVals{SVT} = Union{SVT, (ArrayVariateVals{SVT,XX} where XX), (DictVariateVals{SVT,XX} where XX)} where SVT<:ScalarVariateType
+  const AbstractVariateVals{SVT} = Union{SVT, (ArrayVariateVals{SVT,XX} where XX), DictVariateVals{SVT}} where SVT<:ScalarVariateType
   const VectorVariateVals{SVT} = ArrayVariateVals{SVT,1} where SVT<:ScalarVariateType
   const MatrixVariateVals{SVT} = ArrayVariateVals{SVT,2} where SVT<:ScalarVariateType
 
@@ -79,8 +81,8 @@ module Mamba
 
   const ValidMatrixVariate = ArrayVariate{2,SVT,MatrixVariateVals{SVT}} where SVT<:ScalarVariateType
 
-  abstract type DictVariate{K,SVT,V} <: Variate{V} end
-  const ValidDictVariate = DictVariate{N,SVT,Variate{VS}} where VS<:DictVariateVals{SVT,N} where SVT<:ScalarVariateType where N
+  abstract type DictVariate{SVT,V} <: Variate{V} end
+  const ValidDictVariate = DictVariate{SVT,Variate{VS}} where VS<:DictVariateVals{SVT} where SVT<:ScalarVariateType
 
 
 
@@ -93,7 +95,7 @@ module Mamba
 
 
   #################### Concrete DictVariateVals Types ####################
-  abstract type NestedDictVariateVals{SVT<:ScalarVariateType} <: DictVariateVals{SVT,Tuple} end
+  abstract type NestedDictVariateVals{SVT<:ScalarVariateType} <: DictVariateVals{SVT} end
 
   const LeafOrBranch{SVT} = Union{SVT,NestedDictVariateVals{SVT}} where SVT<:ScalarVariateType
   type SymDictVariateVals{SVT} <: NestedDictVariateVals{SVT}
@@ -165,7 +167,7 @@ module Mamba
     end
   end
 
-  type DictStochastic{K,SVT,V} <: DictVariate{K,SVT,V}
+  type DictStochastic{SVT,V} <: DictVariate{SVT,V}
     value::V
     symbol::Symbol
     monitor::Vector{Int}
@@ -179,7 +181,7 @@ module Mamba
 
 
 const AbstractLogical{SVT} = Union{ScalarLogical{SVT}, (ArrayLogical{N,SVT} where N)}
-const AbstractStochastic{SVT} = Union{ScalarStochastic{SVT}, (ArrayStochastic{N,SVT} where N), (DictStochastic{K,SVT} where K)}
+const AbstractStochastic{SVT} = Union{ScalarStochastic{SVT}, (ArrayStochastic{N,SVT} where N), DictStochastic{SVT}}
 const AbstractDependent = Union{AbstractLogical, AbstractStochastic}
 
 const AbstractFixedDependent = Union{ScalarLogical, ArrayLogical, ScalarStochastic, ArrayStochastic}
@@ -227,7 +229,7 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
 
   const FlatSamplerVariate{T} = SamplerVariate{VectorVariateVals{Float64},T}
 
-  const DictSamplerVariate{T} = SamplerVariate{DictVariateVals{Float64,Tuple},T}
+  const DictSamplerVariate{T} = SamplerVariate{DictVariateVals{Float64},T}
 
 
   #################### Model Types ####################
@@ -240,6 +242,16 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
   type AbstractModelState{StateType} #where StateType <: Variate
     value::StateType
     tune::Vector{Any}
+
+    #function AbstractModelState{K}(val::K,tune::Vector{Any}) where K<:DictVariateVals{SVT} where SVT
+
+  end
+
+  function MakeAbstractModelState(val::DictVariateVals{Float64},tune::Vector{Any})
+    AbstractModelState{DictVariateVals{Float64}}(val,tune)
+    #new{DictVariateVals{SVT}}(val,tune)
+    #Necessary due to the following ridiculous error:
+    #MethodError: Cannot `convert` an object of type Mamba.AbstractModelState{Mamba.SymDictVariateVals{Float64}} to an object of type Mamba.AbstractModelState{Mamba.DictVariateVals{Float64}}
   end
 
   type AbstractModel{StateType} #where StateType <: Variate
@@ -256,12 +268,25 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
 
   const ModelState = AbstractModelState{ArrayVariateVals{Float64,1}}
 
-  const ElasticModel{SVT} = AbstractModel{DictVariateVals{SVT,Tuple}}
+  const ElasticModel{SVT} = AbstractModel{DictVariateVals{SVT}}
 
 
   #################### Chains Type ####################
 
-  const ChainVal{SVT} = Union{Array{SVT, 3}, Array{DictVariateVals{SVT,Tuple},2}}
+  immutable AbstractDictChainVal{SVT,N}
+    vals::Array{DictVariateVals{SVT},N}
+    #uselessExtraComponent::Bool
+  end
+
+  const DictChainVal{SVT} = AbstractDictChainVal{SVT,2}
+
+  function MakeDictChainVal(svt::Type{SVT},ds::Int...) where SVT<:ScalarVariateType
+    AbstractDictChainVal{SVT,2}(Array{DictVariateVals{SVT},2}(ds[1:end-1]...))
+  end
+
+  const VecDictChainVal{SVT} = AbstractDictChainVal{SVT,1}
+
+  const AbstractChainVal{SVT} = Union{Array{SVT, 3}, DictChainVal{SVT}}
 
   abstract type AbstractChains{V} end #where V<:ChainVal
 
@@ -277,7 +302,7 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
     range::Range{Int}
     names::Vector{AbstractString}
     chains::Vector{Int}
-    model::Model
+    model::AbstractModel
   end
 
 

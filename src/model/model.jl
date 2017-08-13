@@ -2,7 +2,7 @@
 
 nodetype{VV}(x::AbstractModel{VV}) = VV
 nodetype(x::AbstractFixedDependent) = ArrayVariateVals{Float64,1}
-nodetype(x::AbstractElasticDependent) = DictVariateVals{Float64,Tuple}
+nodetype(x::AbstractElasticDependent) = DictVariateVals{Float64}
 
 #################### Constructors ####################
 

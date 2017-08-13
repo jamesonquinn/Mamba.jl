@@ -53,12 +53,10 @@ function mcmc_master!{ST}(m::AbstractModel{ST}, window::UnitRange{Int}, burnin::
 
   sims  = Chains[results[k][1] for k in 1:K]
   model = results[1][2]
-  model.states = ModelState[results[k][3] for k in sortperm(chains)]
+  model.states = AbstractModelState[results[k][3] for k in sortperm(chains)]
 
   ModelChains(cat(2, sims...), model) #qq
 end
-
-
 
 function mcmc_worker!(args::Vector)
   m, state, window, burnin, thin, meter = args
@@ -68,7 +66,8 @@ function mcmc_worker!(args::Vector)
   settune!(m, state.tune)
 
   pnames = names(m, true)
-  sim = Chains(last(window), length(pnames), start=burnin + thin, thin=thin,
+
+  sim = Chains(last(window), length(pnames), vstype(m), start=burnin + thin, thin=thin,
                names=pnames)
 
   reset!(meter)
@@ -80,5 +79,5 @@ function mcmc_worker!(args::Vector)
     next!(meter)
   end
 
-  (sim, m, ModelState(unlist(m), gettune(m)))
+  (sim, m, MakeAbstractModelState(unlist(m), gettune(m)))
 end

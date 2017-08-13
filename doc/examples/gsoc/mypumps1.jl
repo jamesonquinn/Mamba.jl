@@ -7,7 +7,7 @@ pumps = Dict{Symbol, Any}(
 )
 pumps[:N] = length(pumps[:y])
 
-StochType = Stochastic
+StochType = Stochelastic
 
 ## Model Specification
 model = Model(

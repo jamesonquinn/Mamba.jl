@@ -39,13 +39,11 @@ end
 function myvaltype(x::Type{X}) where X<:ArrayVariateVals{SVT,N} where N where SVT <: ScalarVariateType
   SVT
 end
-function myvaltype(x::Type{X}) where X<:DictVariateVals{SVT,N} where N where SVT <: ScalarVariateType
+function myvaltype(x::Type{X}) where X<:DictVariateVals{SVT} where SVT <: ScalarVariateType
   SVT
 end
 #myvaltype{VV}(x::AbstractDependent{VV}) = VV
 #NodeType{VV}(x::AbstractDependent{VV}) = VV
-keytype{K,SVT}(x::DictVariateVals{SVT,K}) = K
-#myvaltype{VV}(x::DictVariateVals{K,VV} where K) = VV #qqqq apparently this is in Base already?
 
 #################### Base Methods ####################
 function start(nd::NestedDictVariateVals)
@@ -354,7 +352,7 @@ function Stochelastic(d::Integer, f::Function,
   k = fill(1,d)
   value[k...] = NaN
   fx, src = modelfxsrc(depfxargs, f)
-  s = DictStochastic{keytype(value),myvaltype(value),typeof(value)}(value, :nothing, Int[], fx, src, Symbol[],
+  s = DictStochastic{myvaltype(value),typeof(value)}(value, :nothing, Int[], fx, src, Symbol[],
                       NullUnivariateDistribution())
   setmonitor!(s, monitor)
 end

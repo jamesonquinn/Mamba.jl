@@ -2,7 +2,7 @@
 
 #################### Constructors ####################
 
-function ModelChains(c::Chains, m::Model)
+function ModelChains(c::Chains, m::AbstractModel)
   ModelChains(c.value, c.range, c.names, c.chains, m)
 end
 

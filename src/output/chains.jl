@@ -1,11 +1,104 @@
 #################### Chains ####################
 
+#################### DictChainVal ####################
+
+function myvaltype(x::AbstractDictChainVal{SVT}) where SVT
+  SVT
+end
+
+function getindex(cv::DictChainVal,i1::Int,i2::Int,i3::Tuple)
+  cv.vals[i1,i2][i3]
+end
+
+function setindex!(cv::DictChainVal,v,i1::Int,i2::Int,i3::Tuple)
+  cv.vals[i1,i2][i3] = v
+end
+
+function getindex(cv::VecDictChainVal,i1::Int,i3::Tuple)
+  cv.vals[i1][i3]
+end
+
+function setindex!(cv::VecDictChainVal,v,i1::Int,i3::Tuple)
+  cv.vals[i1][i3] = v
+end
+
+function getindex(cv::DictChainVal,i1::Int,i2::Int,i3::Colon)
+  cv.vals[i1,i2]
+end
+
+function setindex!(cv::DictChainVal,v,i1::Int,i2::Int,i3::Union{Colon,UnitRange}) #TODO: figure out why UnitRange is necessary here
+  cv.vals[i1,i2] = v
+end
+
+# const IntOrColon = Union{Int,Colon}
+#
+#
+# function getindex(cv::DictChainVal,i1::IntOrColon,i2::IntOrColon,i3::Colon)
+#   cv.vals[i1,i2]
+# end
+#
+# function setindex!(cv::DictChainVal,v,i1::IntOrColon,i2::IntOrColon,i3::Colon)
+#   cv.vals[i1,i2] = v
+# end
+#
+# function getindex(cv::DictChainVal,i1::IntOrColon,i2::IntOrColon,i3::Tuple)
+#   cv.vals[i1,i2]
+# end
+#
+# function setindex!(cv::DictChainVal,v,i1::IntOrColon,i2::IntOrColon,i3::Tuple)
+#   cv.vals[i1,i2] = v
+# end
+
+function cat(d::Int, cvs::DictChainVal{SVT}...) where SVT
+  allvals = [cv.vals for cv in cvs]
+  println("qqqq cat ",typeof(allvals[1]))
+  DictChainVal{SVT}(cat(d,[cv.vals for cv in cvs]...)) #will fail for d==3
+  #problem: Cannot `convert` an object of type Array{Mamba.DictVariateVals{Float64},2} to an object of type Mamba.AbstractDictChainVal{SVT,2} where SVT
+  #ie, we're passing in something shaped like the one attribute, and it's trying to "convert" not "construct"
+  #qqqq above comments ara a misdiagnosis (?), problem was lack of {SVT}
+  #DictChainVal(cat(d,[cv.vals for cv in cvs]...)) #will fail for d==3
+end
+function vcat(cvs::DictChainVal...)
+  cat(2,cvs...)
+end
+
+function size(x::AbstractDictChainVal)
+  (size(x.vals)...,-1)
+end
+
+function size(x::AbstractDictChainVal,i::Int)
+  size(x)[i]
+end
+
+function size(x::AbstractDictChainVal,ii::Int...)
+  size(x)[[i for i in ii]]
+end
+
+function size(x::AbstractChains,vargs...)
+  size(x.value,vargs...)
+end
+
+function fill!(x::Mamba.AbstractDictChainVal,v)
+  fill!(x.vals,NullDictVariateVals{myvaltype(x)}())
+end
+
 #################### Constructors ####################
 
-function Chains{T<:AbstractString}(iters::Integer, params::Integer;
+function MakeChainVal(VS_T::Type{VS},l1,l2,l3) where VS<: ArrayVariateVals
+  Array{myvaltype(VS_T)}(l1,l2,l3)
+end
+
+function MakeChainVal(VST::Type{VS},l1,l2,l3) where VS<: DictVariateVals
+  MakeDictChainVal(myvaltype(VST),l1,l2,l3)
+end
+
+function Chains(iters::Integer, params::Integer, vst::VST=VectorVariateVals{Float64};
+
                start::Integer=1, thin::Integer=1, chains::Integer=1,
-               names::Vector{T}=AbstractString[])
-  value = Array{Float64}(length(start:thin:iters), chains, params)
+               names::Vector{T}=AbstractString[]) where T<:AbstractString where VST<:Type{VS} where VS<: AbstractVariateVals
+
+  println("qqqq Chains ",VS)
+  value = MakeChainVal(VS, length(start:thin:iters), chains, params)
   println("qqqq ",params,"  ", length(names),size(value))
   fill!(value, NaN)
   Chains(value, start=start, thin=thin, names=names)
@@ -21,17 +114,31 @@ function Chains{T<:Real, U<:AbstractString, V<:Integer}(value::Array{T, 3};
   if isempty(names)
     names = map(i -> "Param$i", 1:p)
   elseif length(names) != p
-    throw(DimensionMismatch("size(value, 2) and names length differ"))
+    throw(DimensionMismatch("size(value, 3) and names length differ")) #qq
   end
-
   if isempty(chains)
     chains = collect(1:m)
   elseif length(chains) != m
-    throw(DimensionMismatch("size(value, 3) and chains length differ"))
+    throw(DimensionMismatch("size(value, 2) and chains length differ")) #qq
   end
 
-  v = convert(Array{Float64, 3}, value)
-  Chains(v, range(start, thin, n), AbstractString[names...], Int[chains...])
+  #v = convert(Array{Float64, 3}, value) #hard-coded Float64
+  Chains(value, range(start, thin, n), AbstractString[names...], Int[chains...])
+end
+
+function Chains{T<:Real, U<:AbstractString, V<:Integer}(value::AbstractChainVal{T}, namecheck::Bool=false;
+
+               start::Integer=1, thin::Integer=1,
+               names::Vector{U}=AbstractString[], chains::Vector{V}=Int[])
+  n, m, p = size(value)
+  if isempty(chains)
+    chains = collect(1:m)
+  elseif length(chains) != m
+    throw(DimensionMismatch("size(value, 2) and chains length differ")) #qq
+  end
+
+  #v = convert(Array{Float64, 3}, value) #hard-coded Float64
+  Chains(value, range(start, thin, n), AbstractString[names...], Int[chains...])
 end
 
 function Chains{T<:Real, U<:AbstractString}(value::Matrix{T};
@@ -51,17 +158,17 @@ end
 
 #################### Indexing ####################
 
-function Base.getindex(c::Chains, window, names, chains)
+function Base.getindex(c::Chains, window, chains, names) #qq
   inds1 = window2inds(c, window)
   inds2 = names2inds(c, names)
-  Chains(c.value[inds1, inds2, chains],
+  Chains(c.value[inds1, chains, inds2], #qq
          start = first(c) + (first(inds1) - 1) * step(c),
          thin = step(inds1) * step(c), names = c.names[inds2],
          chains = c.chains[chains])
 end
 
-function Base.setindex!(c::AbstractChains, value, iters, names, chains)
-  setindex!(c.value, value, iters2inds(c, iters), names2inds(c, names), chains)
+function Base.setindex!(c::AbstractChains, value, iters, chains, names) #qq
+  setindex!(c.value, value, iters2inds(c, iters), chains, names2inds(c, names)) #qq
 end
 
 macro mapiters(iters, c)

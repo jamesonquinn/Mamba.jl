@@ -89,9 +89,7 @@ function predict(mc::ModelChains,
              start=first(mc), thin=step(mc), names=nodenames)
 
   iters, chains, _ = size(c.value) #qq
-  println(iters, " qqqq ", chains, " qqqq ", inds)
   for k in 1:chains
-    println(k)
     for i in 1:iters
       m[relistkeys] = relist(m, mc.value[i, k, inds], relistkeys) #qq
       update!(m, updatekeys)
