@@ -246,7 +246,7 @@ function Logical(d::Integer, f::Function,
                  monitor::Union{Bool, Vector{Int}}=true)
   value = Array{Float64}(fill(0, d)...)
   fx, src = modelfxsrc(depfxargs, f)
-  l = ArrayLogical(value, :nothing, Int[], fx, src, Symbol[])
+  l = ArrayLogical{1,Float64,Array{Float64}}(value, :nothing, Int[], fx, src, Symbol[])
   setmonitor!(l, monitor)
 end
 
@@ -284,12 +284,12 @@ end
 
 #################### Updating ####################
 
-function setinits!(l::AbstractLogical, m::Model, ::Any=nothing)
+function setinits!(l::AbstractLogical, m::AbstractModel, ::Any=nothing)
   l.value = l.eval(m)
   setmonitor!(l, l.monitor)
 end
 
-function update!(l::AbstractLogical, m::Model)
+function update!(l::AbstractLogical, m::AbstractModel)
   l.value = l.eval(m)
   l
 end

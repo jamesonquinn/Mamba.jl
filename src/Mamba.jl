@@ -5,8 +5,8 @@ module Mamba
   #################### Imports ####################
 
   import Base: cor, dot, valtype, getindex, get, length, keys, setindex!,
-         start, next, done, ndims, convert, promote_rule, size, fill!, cat,
-         +, -, *, /, ^
+         start, next, done, ndims, convert, promote_rule, size, fill!, cat, vcat, hcat,
+         +, -, *, /, ^, |
   import Base.LinAlg: Cholesky
   import Calculus: gradient
   import Compose: Context, context, cm, gridstack, inch, MeasureOrNumber, mm,
@@ -36,7 +36,7 @@ module Mamba
          InverseWishart, Wishart,
          ## Methods
          dim, gradlogpdf, insupport, isprobvec, logpdf, logpdf!, maximum,
-         minimum, pdf, quantile, rand, sample!, support
+         minimum, pdf, quantile, rand, sample!, support, isprobvec
   import Gadfly: draw, Geom, Guide, Layer, layer, PDF, PGF, Plot, plot, PNG, PS,
          render, Scale, SVG, Theme
   import LightGraphs: DiGraph, add_edge!, out_neighbors,
@@ -318,6 +318,7 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
   include("distributions/extensions.jl")
   include("distributions/pdmatdistribution.jl")
   include("distributions/transformdistribution.jl")
+  include("distributions/dirichletprocess.jl")
 
   include("model/dependent.jl")
   include("model/graph.jl")
@@ -328,34 +329,35 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
 
   include("output/chains.jl")
   include("output/chainsummary.jl")
-  include("output/fileio.jl")
-  include("output/gelmandiag.jl")
-  include("output/gewekediag.jl")
-  include("output/heideldiag.jl")
-  include("output/mcse.jl")
-  include("output/modelchains.jl")
-  include("output/modelstats.jl")
-  include("output/rafterydiag.jl")
-  include("output/stats.jl")
-  include("output/plot.jl")
+  # include("output/fileio.jl")
+  # include("output/gelmandiag.jl")
+  # include("output/gewekediag.jl")
+  # include("output/heideldiag.jl")
+  # include("output/mcse.jl")
+  # include("output/modelchains.jl")
+  # include("output/modelstats.jl")
+  # include("output/rafterydiag.jl")
+  # include("output/stats.jl")
+  # include("output/plot.jl")
 
   include("samplers/sampler.jl")
 
-  include("samplers/abc.jl")
-  include("samplers/amm.jl")
-  include("samplers/amwg.jl")
-  include("samplers/bhmc.jl")
-  include("samplers/bia.jl")
-  include("samplers/bmc3.jl")
+  # include("samplers/abc.jl")
+  # include("samplers/amm.jl")
+  # include("samplers/amwg.jl")
+  # include("samplers/bhmc.jl")
+  # include("samplers/bia.jl")
+  # include("samplers/bmc3.jl")
   include("samplers/bmg.jl")
   include("samplers/dgs.jl")
-  include("samplers/hmc.jl")
-  include("samplers/mala.jl")
-  include("samplers/miss.jl")
-  include("samplers/nuts.jl")
-  include("samplers/rwm.jl")
+  # include("samplers/hmc.jl")
+  # include("samplers/mala.jl")
+  # include("samplers/miss.jl")
+  # include("samplers/nuts.jl")
+  # include("samplers/rwm.jl")
   include("samplers/slice.jl")
   include("samplers/slicesimplex.jl")
+  include("samplers/GSOC/rjs.jl")
 
   #include("maxpost/maxpost.jl")
 
@@ -441,6 +443,7 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
     BMG, BMGVariate,
     DiscreteVariate,
     DGS, DGSVariate,
+    RJS, RJSVariate,
     HMC, HMCVariate,
     BIA, BIAVariate,
     MALA, MALAVariate,

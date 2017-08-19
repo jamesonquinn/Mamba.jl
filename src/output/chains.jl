@@ -49,9 +49,8 @@ end
 #   cv.vals[i1,i2] = v
 # end
 
-function cat(d::Int, cvs::DictChainVal{SVT}...) where SVT
+function cat(d::Int, cvs::AbstractVariateVals{SVT}...) where SVT #qqqq I think this type is too loose, maybe have to go rescue old version of this function?
   allvals = [cv.vals for cv in cvs]
-  println("qqqq cat ",typeof(allvals[1]))
   DictChainVal{SVT}(cat(d,[cv.vals for cv in cvs]...)) #will fail for d==3
   #problem: Cannot `convert` an object of type Array{Mamba.DictVariateVals{Float64},2} to an object of type Mamba.AbstractDictChainVal{SVT,2} where SVT
   #ie, we're passing in something shaped like the one attribute, and it's trying to "convert" not "construct"
@@ -97,9 +96,7 @@ function Chains(iters::Integer, params::Integer, vst::VST=VectorVariateVals{Floa
                start::Integer=1, thin::Integer=1, chains::Integer=1,
                names::Vector{T}=AbstractString[]) where T<:AbstractString where VST<:Type{VS} where VS<: AbstractVariateVals
 
-  println("qqqq Chains ",VS)
   value = MakeChainVal(VS, length(start:thin:iters), chains, params)
-  println("qqqq ",params,"  ", length(names),size(value))
   fill!(value, NaN)
   Chains(value, start=start, thin=thin, names=names)
 end
@@ -109,7 +106,6 @@ function Chains{T<:Real, U<:AbstractString, V<:Integer}(value::Array{T, 3};
                names::Vector{U}=AbstractString[], chains::Vector{V}=Int[])
   n, m, p = size(value)
 
-  println("qqqq ChainsChainsChains",length(names),size(value))
 
   if isempty(names)
     names = map(i -> "Param$i", 1:p)

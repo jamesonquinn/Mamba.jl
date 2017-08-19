@@ -19,7 +19,7 @@ SliceSimplexTune(x::Vector, logf::Function; args...) =
   SliceSimplexTune(x, Nullable{Function}(logf); args...)
 
 
-const SliceSimplexVariate = FlatSamplerVariate{SliceSimplexTune}
+const SliceSimplexVariate = SamplerVariate{VS,SliceSimplexTune} where VS
 
 function validate(v::SliceSimplexVariate)
   0 < v.tune.scale <= 1 || throw(ArgumentError("scale is not in (0, 1]"))
@@ -29,7 +29,7 @@ end
 
 #################### Sampler Constructor ####################
 
-function SliceSimplex(params::ElementOrVector{Symbol}; args...)
+function SliceSimplex(params::ElementOrVector{Symbol}; kargs...)
   params = asvec(params)
   samplerfx = function(model::Model, block::Integer)
     s = model.samplers[block]
@@ -39,7 +39,8 @@ function SliceSimplex(params::ElementOrVector{Symbol}; args...)
       x = unlist(node)
 
       sim = function(inds::Range, logf::Function)
-        v = SamplerVariate(x[inds], s, model.iter; args...)
+        println("qqqq types ",map(typeof,(x[inds], s, model.iter)))
+        v = MakeSamplerVariate(x[inds], s; iter=model.iter, kargs...)
         sample!(v, logf)
       end
 

@@ -8,15 +8,16 @@ eyes = Dict{Symbol, Any}(
      538.5, 538.6, 539.4, 539.6, 540.4, 540.8, 542.0, 542.8, 543.0, 543.5,
      543.8, 543.9, 545.3, 546.2, 548.8, 548.7, 548.9, 549.0, 549.4, 549.9,
      550.6, 551.2, 551.4, 551.5, 551.6, 552.8, 552.9, 553.2],
-  :N => 48,
+  :N => 48, #should be divisible by 4 for inits below to work
   :alpha => [1, 1]
 )
+
 
 
 ## Model Specification
 model = Model(
 
-  y = Stochastic(1,
+  y = Stochelastic(1,
     (lambda, T, s2, N) ->
       begin
         sigma = sqrt(s2)
@@ -31,13 +32,9 @@ model = Model(
     false
   ),
 
-  T = Stochastic(1,
-    (P, N) -> UnivariateDistribution[Categorical(P) for i in 1:N],
+  T = Stochelastic(1,
+    (alpha, N) -> DirichletPInt(alpha, N),
     false
-  ),
-
-  P = Stochastic(1,
-    alpha -> Dirichlet(alpha)
   ),
 
   lambda = Logical(1,
@@ -63,15 +60,16 @@ model = Model(
 
 ## Initial Values
 inits = [
-  Dict(:y => eyes[:y], :T => repeat([1,2], outer=Int(eyes[:N]//2)), :P => [0.5, 0.5],
+  Dict(:y => eyes[:y], :T => repeat([1,2], outer=[eyes[:N]/2]), :P => [0.5, 0.5],
        :lambda0 => 535, :theta => 5, :s2 => 10),
-  Dict(:y => eyes[:y], :T => repeat([1,1,2,2], outer=Int(eyes[:N]//4)), :P => [0.5, 0.5],
+  Dict(:y => eyes[:y], :T => repeat([1,1,2,2], outer=[eyes[:N]/4]), :P => [0.5, 0.5],
        :lambda0 => 550, :theta => 1, :s2 => 1)
 ]
 
 
 ## Sampling Scheme
 scheme = [DGS(:T),
+          RJS(:T),
           Slice([:lambda0, :theta], [5.0, 1.0]),
           Slice(:s2, 2.0, transform=true),
           SliceSimplex(:P, scale=0.75)]
@@ -79,5 +77,5 @@ setsamplers!(model, scheme)
 
 
 ## MCMC Simulations
-sim = mcmc(model, eyes, inits, 1000, burnin=250, thin=2, chains=2)
+sim = mcmc(model, eyes, inits, 10000, burnin=2500, thin=2, chains=2)
 describe(sim)

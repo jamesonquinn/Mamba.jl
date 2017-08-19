@@ -2,6 +2,9 @@
 
 const samplerfxargs = [(:model, Mamba.AbstractModel), (:block, Integer)]
 
+getindex(x::SamplerVariate,args...) = getindex(x.value,args...)
+setindex!(x::SamplerVariate,args...) = setindex!(x.value,args...)
+
 
 #################### Types and Constructors ####################
 
@@ -30,15 +33,15 @@ type WithIter end
 
 function SamplerVariate{VS,T}(block::SamplingBlock{M}, pargs...; kargs...) where M where VS where T<:SamplerTune
   m = block.model
-  SamplerVariate(
+  MakeSamplerVariate(
     #{vstype(M),T}
-    WithIter, unlist(block), m.samplers[block.index], pargs...;
+    unlist(block), m.samplers[block.index], pargs...;
                  iter=m.iter, kargs...)
 end
 
-function SamplerVariate{VS<:AbstractVariateVals,T<:SamplerTune}(wi::Type{WithIter}, x::VS,
-                                                 s::Sampler{T}, pargs...;
-                                                 iter::Integer=1, kargs...)
+function MakeSamplerVariate{VS<:AbstractVariateVals,T<:SamplerTune}(x::VS,
+                                                 s::Sampler{T}, pargs...; #SamplerVariate
+                                                 iter::Integer=1, kargs...) #SamplerVariate
   if iter == 1
     v = SamplerVariate{VS,T}(x, pargs...; kargs...)
     s.tune = v.tune
@@ -74,13 +77,13 @@ end
 validate(v::SamplerVariate) = v
 
 function validatebinary(v::SamplerVariate)
-  all(insupport(Bernoulli, v)) ||
+  all(insupport(Bernoulli, v.value)) ||
     throw(ArgumentError("variate is not a binary vector"))
   v
 end
 
 function validatesimplex(v::SamplerVariate)
-  isprobvec(v) || throw(ArgumentError("variate is not a probability vector"))
+  isprobvec(v.value) || throw(ArgumentError("variate is not a probability vector"))
   v
 end
 

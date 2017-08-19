@@ -10,6 +10,7 @@ function setinits!(m::AbstractModel, inits::Dict{Symbol, Any})
         throw(ArgumentError("missing initial value for node : $key"))
       setinits!(node, m, inits[key])
     else
+      println("qqqq setinits! ",key)
       setinits!(node, m)
     end
   end

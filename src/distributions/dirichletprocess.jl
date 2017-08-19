@@ -7,9 +7,10 @@ import Distributions: logpdf
 
 immutable DirichletPInt{T<:Integer} <: ContinuousMultivariateDistribution
     alpha::Float64
+    len::Int64
 
-    function DirichletPInt(alpha::Float64)
-        DirichletPInt{Int64}(alpha)
+    function DirichletPInt{T}(alpha::Float64,n::Int64) where T
+        DirichletPInt{Int64}(alpha,n)
     end
 end
 

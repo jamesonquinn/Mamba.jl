@@ -1,3 +1,8 @@
+#################### Syntactic sugar ####################
+|(a::Void,b)=b
+const Maybe{T} = Union{T, Void}
+isnull(::Void) = true
+
 #################### Model Expression Operators ####################
 TypeLike = Union{UnionAll,DataType,Type}
 UofVofTs = Vector{Tuple{Symbol, X}} where X<:TypeLike
