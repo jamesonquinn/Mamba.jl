@@ -70,11 +70,14 @@ function mcmc_worker!(args::Vector)
   sim = Chains(last(window), length(pnames), vstype(m), start=burnin + thin, thin=thin,
                names=pnames)
 
+  println("mcmc_worker qqqq bound ", last(window), " ", first(window))
   reset!(meter)
   for i in window
     sample!(m)
     if i > burnin && (i - burnin) % thin == 0
-      sim[i, 1, :] = unlist(m, true)
+      place = Int((i - burnin) / thin)
+      println("mcmc_worker qqqq ",i,",",size(unlist(m, true))," ? ",size(sim.value))
+      sim.value[place, 1, :] = unlist(m, true) #why no correction factor????? TODO: fixed, but this probably broke some downstream analysis
     end
     next!(meter)
   end

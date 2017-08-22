@@ -39,9 +39,9 @@ function SamplerVariate{VS,T}(block::SamplingBlock{M}, pargs...; kargs...) where
                  iter=m.iter, kargs...)
 end
 
-function MakeSamplerVariate{VS<:AbstractVariateVals,T<:SamplerTune}(x::VS,
+function MakeSamplerVariate(x::VS,
                                                  s::Sampler{T}, pargs...; #SamplerVariate
-                                                 iter::Integer=1, kargs...) #SamplerVariate
+                                                 iter::Integer=1, kargs...) where VS where T #SamplerVariate
   if iter == 1
     v = SamplerVariate{VS,T}(x, pargs...; kargs...)
     s.tune = v.tune

@@ -247,8 +247,8 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
 
   end
 
-  function MakeAbstractModelState(val::DictVariateVals{Float64},tune::Vector{Any})
-    AbstractModelState{DictVariateVals{Float64}}(val,tune)
+  function MakeAbstractModelState(val::VS,tune::Vector{Any}) where VS<:AbstractVariateVals{SVT} where SVT #TODO: Why  AbstractVariateVals and not Variate?
+    AbstractModelState{VS}(val,tune)
     #new{DictVariateVals{SVT}}(val,tune)
     #Necessary due to the following ridiculous error:
     #MethodError: Cannot `convert` an object of type Mamba.AbstractModelState{Mamba.SymDictVariateVals{Float64}} to an object of type Mamba.AbstractModelState{Mamba.DictVariateVals{Float64}}

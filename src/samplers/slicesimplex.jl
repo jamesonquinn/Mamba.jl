@@ -84,11 +84,12 @@ end
 
 sample!(v::SliceSimplexVariate) = sample!(v, v.tune.logf)
 
-function sample!(v::SliceSimplexVariate, logf::Function)
-  p0 = logf(v.value) + log(rand())
+function sample!(var::SliceSimplexVariate, logf::Function)
+  v = var.value
+  p0 = logf(v) + log(rand())
   d = Dirichlet(ones(v))
 
-  vertices = makefirstsimplex(v, v.tune.scale)
+  vertices = makefirstsimplex(v, var.tune.scale)
   vb = vertices \ v
   xb = rand(d)
   x = vertices * xb
@@ -98,9 +99,9 @@ function sample!(v::SliceSimplexVariate, logf::Function)
     xb = rand(d)
     x = vertices * xb
   end
-  v[:] = x
+  var[:] = x
 
-  v
+  var
 end
 
 

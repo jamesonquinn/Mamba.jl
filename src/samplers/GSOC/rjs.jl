@@ -201,7 +201,8 @@ function RJS(param::Symbol, splitprob=0.5) #TODO: allow use on hierarchical stuf
         assigner = DGS(target,
               [k,j],
               [i for i in 1:length[cur[param]] if cur[param,i]==k],
-              i -> i)
+              i -> i;
+              returnLogp = true)
         logA += assigner.eval(model,block,proposal)
 
       end
@@ -230,6 +231,7 @@ function RJS(param::Symbol, splitprob=0.5) #TODO: allow use on hierarchical stuf
               [k,j],
               [i for i in 1:length[cur[param]] if cur[param,i] in [j,k]],
               i -> i;
+              returnLogp = true
               )
         logA += assigner.eval(model,block,proposal)
       end
