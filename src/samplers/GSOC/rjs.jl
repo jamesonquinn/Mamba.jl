@@ -47,11 +47,10 @@ function proposeSplitParams!(conditionalDist::Distribution,
         k::Int, #index of existing group
         j::Int, #index of new proposed group
         dirichparam::Float64,
-        params::DictVariateVals{SVT}, condParamIndices::Vector{Tuple},
+        params::DictVariateVals{SVT}, condParamIndices::Vector{Tup},
         weights::AbstractVector{Float64},
-        tune::Maybe{RJTune}=nothing,
-        hyperCondParamDist::Maybe{UnivariateDistribution}=nothing,
-        hyperparams::Maybe{Vector}=nothing) where SVT
+        hyperParamDists::Maybe{Vector{UnivariateDistribution}}=nothing,
+        tune::Maybe{RJTune}=nothing) where SVT where Tup<:Tuple
 
   throw(ArgumentError("unsupported distribution structure $(typeof(conditionalDist))"))
 end
@@ -60,12 +59,11 @@ function proposeSplitParams!(conditionalDist::Normal,
         k::Int, #index of existing group
         j::Int, #index of new proposed group
         dirichparam::Float64,
-        params::DictVariateVals{SVT}, condParamIndices::Vector{Tuple},
+        params::DictVariateVals{SVT}, condParamIndices::Vector{Tup},
         weights::AbstractVector{Float64},
+        hyperParamDists::Maybe{Vector{UnivariateDistribution}}=nothing,
         tune::Maybe{RJTune}=nothing,
-        hyperCondParamDist::Maybe{UnivariateDistribution}=nothing,
-        hyperparams::Maybe{Vector}=nothing,
-        u2dist=Beta(2,2), u3dist=Beta(1,1)) where SVT
+        u2dist=Beta(2,2), u3dist=Beta(1,1)) where SVT where Tup<:Tuple
 
   #=If you were going to follow Richardson and Green 1997 fully, you'd
   keep track of the restriction that the means are ordered, and only adjacent
@@ -76,7 +74,7 @@ function proposeSplitParams!(conditionalDist::Normal,
   u1 = rand(Beta(dirichparam,dirichparam)) #R&G used 2,2 but this choice simplifies A
   u2 = rand(u2dist)
   u3 = rand(u3dist)
-  w0 = params[weightIndex...,k]
+  w0 = weights[k]
   mu0 = params[condParamIndices[1]...,k]
   sig0 = params[condParamIndices[2]...,k]
   w1 = w0 * u1
@@ -86,14 +84,14 @@ function proposeSplitParams!(conditionalDist::Normal,
   mu2 = mu0 + u2*sig0*sqrtu1odds
   sig1 = sqrt(u3*(1.-u2^2)*sig0/u1)
   sig2 = sqrt((1.-u3)*(1.-u2^2)*sig0/(1.-u1))
-  params[weightIndex...,k] = w1
   params[condParamIndices[1]...,k] = mu1
   params[condParamIndices[2]...,k] = sig1
-  params[weightIndex...,j] = w2
   params[condParamIndices[1]...,j] = mu2
   params[condParamIndices[2]...,j] = sig2
   logAfac= (log(w0*abs(mu1-mu2)*sig1*sig2/(u2*(1-u2^2)*u3*(1-u3)*sig0)) #jacobian
-    -logpdf(u2dist,u2)-logpdf(u3dist,u3)) #density; because of our choice of dist, u1 cancels out
+    -logpdf(u2dist,u2)-logpdf(u3dist,u3) #density; because of our choice of dist, u1 cancels out
+    +logpdf(hyperParamDists[1],mu1)+logpdf(hyperParamDists[1],mu2)-logpdf(hyperParamDists[1],mu0)
+    +logpdf(hyperParamDists[2],sig1)+logpdf(hyperParamDists[2],sig2)-logpdf(hyperParamDists[2],sig0))
   #A = Afac * (posterior ratio) / P(allocation)
   logAfac
 end
@@ -102,11 +100,10 @@ function proposeMergeParams!(conditionalDist::Distribution,
         k::Int, #index of target group
         j::Int, #index of disappearing group
         dirichparam::Float64,
-        params::DictVariateVals{SVT}, condParamIndices::Vector{Tuple},
+        params::DictVariateVals{SVT}, condParamIndices::Vector{Tup},
         weights::AbstractVector{Float64},
-        tune::Maybe{RJTune}=nothing,
-        hyperCondParamDist::Maybe{UnivariateDistribution}=nothing,
-        hyperparams::Maybe{Vector}=nothing) where SVT
+        hyperParamDists::Maybe{Vector{UnivariateDistribution}}=nothing,
+        tune::Maybe{RJTune}=nothing) where SVT where Tup<:Tuple
 
   throw(ArgumentError("unsupported distribution structure $(typeof(conditionalDist))"))
 end
@@ -115,20 +112,18 @@ function proposeMergeParams!(conditionalDist::Normal,
         k::Int, #index of target group
         j::Int, #index of disappearing group
         dirichparam::Float64,
-        params::DictVariateVals{SVT}, condParamIndices::Vector{Tuple},
+        params::DictVariateVals{SVT}, condParamIndices::Vector{Tup},
         weights::AbstractVector{Float64},
-        tune::Maybe{RJTune}=nothing,
-        hyperCondParamDist::Maybe{UnivariateDistribution}=nothing,
-        hyperparams::Maybe{Vector}=nothing) where SVT
+        hyperParamDists::Maybe{Vector{UnivariateDistribution}}=nothing,
+        tune::Maybe{RJTune}=nothing) where SVT where Tup<:Tuple
 
-  w1 = params[weightIndex...,j]
+  w1 = weights[j]
   mu1 = params[condParamIndices[1]...,j]
   sig1 = params[condParamIndices[2]...,j]
-  w2 = params[weightIndex...,k]
+  w2 = weights[k]
   mu2 = params[condParamIndices[1]...,k]
   sig2 = params[condParamIndices[2]...,k]
   w0 = w1+w2
-  params[weightIndex...,k] = w0
   mu0 = (mu1*w1 + mu2*w2)/w0
   params[condParamIndices[1]...,k] = mu0
   sig0 = sqrt(mu1*(sig1^2 + (mu1-mu0)^2) + mu2*(sig2^2 + (mu2-mu0)^2))
@@ -136,27 +131,40 @@ function proposeMergeParams!(conditionalDist::Normal,
   u1 = (mu0-mu1)/(mu2-mu1)
   u2 = (mu2-mu0)/sig0*sqrt(w2/w1)
   logAfac= (log(w0*abs(mu1-mu2)*sig1*sig2/(u2*(1-u2^2)*u3*(1-u3)*sig0)) #jacobian
-    -logpdf(u2dist,u2)-logpdf(u3dist,u3)) #density; because of our choice of dist for u1, it cancels out
+    -logpdf(u2dist,u2)-logpdf(u3dist,u3) #density; because of our choice of dist for u1, it cancels out
+    )
+    #the factors due to prior probability of the parameters are part of the posterior ratio.
+        #+logpdf(hyperParamDists[1],mu1)+logpdf(hyperParamDists[1],mu2)-logpdf(hyperParamDists[1],mu0)
+        #+logpdf(hyperParamDists[2],sig1)+logpdf(hyperParamDists[2],sig2)-logpdf(hyperParamDists[2],sig0))
   #P(accept) = min(1,1/Afac * (posterior ratio) * P(allocation)
   logAfac #remember, use reciprocal of Afac for merges
 end
 
+# function hyperdists(model::AbstractModel,target::Symbol)
+#   tnode = model[target]
+#   [s.distr for s in tnode.sources[1:end-2]]
+# end
+
 function RJS(param::Symbol, splitprob=0.5) #TODO: allow use on hierarchical stuff; param::Tuple??
 
-  samplerfx = function(model::Model, block::Integer)
+  samplerfx = function(model::AbstractModel, block::Integer)
 
     #local node, x #TODO: does anything need to be local here?
     node = model[param]
+    (alpha,) = params(node.distr)
     cur = unlist(model)
     proposal = copy(cur)
     logA = log((1. - splitprob) / splitprob) #base acceptance for split; use reciprocal for merge
     logA -= logpdf(model,block)
 
+    #hyperParamDists
+    #hyperParamDistses = [hyperdists(model,target) for target in node.targets]
+
     #counts of groups
-    counts = countmap(cur[param])
-    groups = keys(counts)
+    counts = countmap(cur[param].value)
+    groups = [Int64(g) for g in keys(counts)]
     ln = length(groups)
-    mx = max(groups)
+    mx = Int64(max(groups...))
 
     #latent weights of groups.
     #This is just a Gibbs sample from the distribution of the latent weights, which
@@ -169,6 +177,26 @@ function RJS(param::Symbol, splitprob=0.5) #TODO: allow use on hierarchical stuf
     w = ProbabilityWeights([get(rawweights,i,0.)/sum for i in 1:mx])
 
     splitIndicator = rand()<splitprob
+
+    #figure out which target is the "bottom";
+    #e.g., the Normally-distributed one, not the mean or sd thereof.
+    targets=Set{Symbol}(node.targets)
+    alltargetparams=Set{Symbol}()
+    for target in targets
+      tnode = model[target]
+      println("qqqq alltargetparams $(target) $(tnode.sources)")
+      union!(alltargetparams,Set{Symbol}(tnode.sources))
+    end
+    setdiff!(targets,alltargetparams)
+    targetparams=Set{Symbol}()
+    for target in targets
+      tnode = model[target]
+      println("qqqq targetparams $(target) $(tnode.sources)")
+      union!(targetparams,Set{Symbol}(tnode.sources))
+    end
+    setdiff!(targetparams,[param])
+    println("qqqq targets $(targets) $(targetparams)")
+
     if splitIndicator
 
       #choose group to split
@@ -189,21 +217,32 @@ function RJS(param::Symbol, splitprob=0.5) #TODO: allow use on hierarchical stuf
 
       #propose individual splits
 
-      for target in node.targets
+
+      for target in targets
         tnode = model[target]
-        musigfrom = [s for s in tnode.sources if s!=param]
-        logA += proposeSplitParams!(tnode.distr,
+        musigfrom = tnode.sources[1:end-2]
+        logA += proposeSplitParams!(tnode.distr[k],
                 k, #index of existing group
                 j, #index of new proposed group
                 params(node.distr)[1],
-                proposal, musigfrom,
-                w)#TODO: tune
+                proposal, [(param,) for param in musigfrom],
+                w
+                )#TODO: tune
         assigner = DGS(target,
-              [k,j],
+              [k,j], w,
               [i for i in 1:length[cur[param]] if cur[param,i]==k],
               i -> i;
               returnLogp = true)
         logA += assigner.eval(model,block,proposal)
+      end
+      for param in targetparams
+        #account for priors/hyperparameters on params
+        relist!(model, cur)
+        logA -= logpdf(model, param)
+
+        relist!(model, proposal)
+        logA += logpdf(model, param)
+
 
       end
 
@@ -218,22 +257,32 @@ function RJS(param::Symbol, splitprob=0.5) #TODO: allow use on hierarchical stuf
 
       #propose individual splits
 
-      for target in node.targets
+      for target in targets
         tnode = model[target]
-        logA += proposeMergeParams!(tnode.distr,
+        musigfrom = tnode.sources[1:end-2]
+        logA += proposeMergeParams!(tnode.distr[k],
                 k, #index of existing group
                 j, #index of new proposed group
                 params(node.distr)[1],
-                proposal, musigfrom,
+                proposal, [(param,) for param in musigfrom],
                 w) #TODO: tune
 
         assigner = DGS(target,
-              [k,j],
+              [k,j], w,
               [i for i in 1:length[cur[param]] if cur[param,i] in [j,k]],
               i -> i;
               returnLogp = true
               )
         logA += assigner.eval(model,block,proposal)
+      end
+      for param in targetparams
+        #account for priors/hyperparameters on params
+        relist!(model, cur)
+        logA -= logpdf(model, param)
+
+        relist!(model, proposal)
+        logA += logpdf(model, param)
+
       end
 
       relist!(model, proposal)

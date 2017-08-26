@@ -4,14 +4,15 @@
 
 const DGSUnivariateDistribution =
           Union{Bernoulli, Binomial, Categorical, DiscreteUniform,
-                Hypergeometric, NoncentralHypergeometric}
+                Hypergeometric, NoncentralHypergeometric,
+                DirichletPInt}
 
 
 const DSForm = Union{Function, Vector{Float64}}
 
 type DSTune{F<:DSForm} <: SamplerTune
   mass::Nullable{F}
-  support::Matrix{Real}
+  support::Matrix{Int64} #qqqq: is this typing too strict? Do we have to make it parametric?
 
   DSTune{F}() where F<:DSForm = new()
 
@@ -66,16 +67,23 @@ end
 - `getTargetIndex`: when resampling, which target values to calculate the logpdf for, if not all.
 """
 function DGS(params::ElementOrVector{Symbol},
-          overSupport::Maybe{Vector{Int}}=nothing, overIndices::Maybe{Vector{Int}}=nothing,
+          overSupport::Maybe{Vector{Int}}=nothing, supportWeights::Maybe{AbstractVector{Float64}}=nothing,
+          overIndices::Maybe{Vector{Int}}=nothing,
           getTargetIndex::Maybe{Function}=nothing;
           returnLogp = false)
-
+  if !isnull(supportWeights)
+    w = repeat(0.,length(supportWeights))
+    tot = sum([supportWeights[s] for s in overSupport])
+    for s in overSupport
+      w[s] = supportWeights[s] / tot
+    end
+  end
   params = asvec(params)
   samplerfx = function(model::AbstractModel, block::Integer, proposal::Maybe{(DictVariateVals{SVT} where SVT)}=nothing; kargs...)
     #A function that goes in the Sampler object; when called by sample! (line #?),
     #it loops over blocks, and for each block, calls DGS_sub!, which loops over indices
     s = model.samplers[block]
-    local node, x
+    local node, x, xAsInt
     logptot = 0
     for key in params
       node = model[key]
@@ -84,20 +92,54 @@ function DGS(params::ElementOrVector{Symbol},
       else
         x = proposal[key]
       end
+      xAsInt = [Int(val) for val in x]
+      sup = emptysup = range(1,0)'
 
       sim = function(i::Integer, d::DGSUnivariateDistribution, mass::Function)
-        v = DGSVariate([x[i]], !isnull(overSupport) ? overSupport : support(d)')
+        v = DGSVariate([x[i]], !isnull(overSupport) ? overSupport : (
+                                    !isa(d,DirichletPInt) ? support(d)' : (
+                                        sup==emptysup ? sup=(1:Int(max(x.value...)))' : sup
+                                    )))
         logp = sample!(v, mass; kargs...)
         x[i] = v[1]
+        xAsInt[i] = Int(v[1])
         relist!(model, x, key)
         logp
       end
 
       mass = function(d::DGSUnivariateDistribution, v::AbstractVector,
                       i::Integer)
-        x[i] = value = v[1]
+
+        value = v[1]
+
+        x[i] = myvaltype(x)(value)
+        xAsInt[i] = Int(value)
         relist!(model, x, key)
         targetIndex = isnull(getTargetIndex) ? () : (get(getTargetIndex)(i),)
+        if isa(d,DirichletPInt)
+          if isnull(supportWeights)
+            counts = countmap(x.value)
+            groups = collect(keys(counts))
+            ln = length(groups)
+            mx = Int64(max(groups...))
+            if ln < mx
+              sort!(groups)
+              for j in 1:ln
+                if j < groups[j]
+                  break
+                end
+              end
+              maybenewi = [j]
+            else
+              maybenewi = []
+            end
+            d = DirichletPIntMarginal(d,xAsInt,i,maybenewi...)
+          else
+            d = Categorical(w)
+          end
+        end
+
+
         exp(logpdf(d, value) + logpdf(model, node.targets, targetIndex...))
       end
 
@@ -128,6 +170,15 @@ function DGS_sub!(D::Array{UnivariateDistribution}, sim::Function,
   for i in indices
     d = D[i]
     logp += sim(i, d, v -> mass(d, v, i))
+  end
+  logp
+end
+
+function DGS_sub!(D::DirichletPInt, sim::Function,
+                  mass::Function)
+  logp = 0.
+  for i in 1:D.len
+    logp += sim(i, D, v -> mass(D, v, i))
   end
   logp
 end

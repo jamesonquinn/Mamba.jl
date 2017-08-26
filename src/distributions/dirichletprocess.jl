@@ -1,17 +1,36 @@
 using Distributions
 using StatsBase
+using IterTools
 
 import Base:
     rand!, length
 import Distributions: logpdf
 
-immutable DirichletPInt{T<:Integer} <: ContinuousMultivariateDistribution
+immutable DirichletPInt <: DiscreteMultivariateDistribution
     alpha::Float64
     len::Int64
+    basedist::Nullable{Distribution}
 
-    function DirichletPInt{T}(alpha::Float64,n::Int64) where T
-        DirichletPInt{Int64}(alpha,n)
+    function DirichletPInt(alpha::Float64,n::Int64)
+        new(alpha,n,Nullable{Distribution}())
     end
+end
+
+function DirichletPIntMarginal(dp::DirichletPInt,v::AbstractVector{Int64},i::Int64,newi::Maybe{Int64}=nothing)
+  s = 1:max(v...)
+  if isnull(newi)
+    lastWeight = Float64[dp.alpha]
+  else
+    lastWeight = Float64[]
+  end
+  c = [Float64(cc) for cc in chain(counts(v,s),lastWeight)]
+  c[v[i]] -= 1
+  tot = length(v) - 1. + dp.alpha
+  if !isnull(newi)
+    c[newi] = dp.alpha
+  end
+  c /= tot
+  return Categorical(c)
 end
 
 
@@ -20,7 +39,7 @@ Base.show(io::IO, d::DirichletPInt) = show(io, d, (:alpha,))
 # Properties
 
 params(d::DirichletPInt) = (d.alpha,)
-#@inline partype{T<:Real}(d::Dirichlet{T}) = T
+#@inline partype{T<:Real}(d::Dirichlet{Int64}) = T
 
 
 #
@@ -38,7 +57,7 @@ params(d::DirichletPInt) = (d.alpha,)
 # end
 
 #
-# function dirichlet_mode!{T <: Real}(r::Vector{T}, α::Vector{T}, α0::T)
+# function dirichlet_mode!{T <: Real}(r::Vector{Int64}, α::Vector{Int64}, α0::T)
 #     k = length(α)
 #     s = α0 - k
 #     for i = 1:k
@@ -51,7 +70,7 @@ params(d::DirichletPInt) = (d.alpha,)
 #     return r
 # end
 #
-# dirichlet_mode{T <: Real}(α::Vector{T}, α0::T) = dirichlet_mode!(Vector{T}(length(α)), α, α0)
+# dirichlet_mode{T <: Real}(α::Vector{Int64}, α0::T) = dirichlet_mode!(Vector{Int64}(length(α)), α, α0)
 #
 # mode(d::Dirichlet) = dirichlet_mode(d.alpha, d.alpha0)
 # mode(d::DirichletCanon) = dirichlet_mode(d.alpha, sum(d.alpha))
@@ -61,9 +80,15 @@ params(d::DirichletPInt) = (d.alpha,)
 
 # Evaluation
 
-function insupport{T<:Integer}(d::DirichletPInt{T}, x::AbstractVector{T})
+function insupport(d::DirichletPInt, x::AbstractVector{Int64})
     return true
 end
+
+function insupport(d::DirichletPInt, x::AbstractVector{Float64})
+    return all(v -> v % 1 == 0,x)
+end
+
+length(d::DirichletPInt) = d.len
 
 function _logpdfcounts(d::DirichletPInt, c::Vector{Int64},l::Int64)
     a = d.alpha
@@ -77,17 +102,18 @@ function _logpdfcounts(d::DirichletPInt, c::Vector{Int64},l::Int64)
     return s
 end
 
-
-function logpdf{T<:Integer}(d::DirichletPInt{T}, x::AbstractVector{T})
-    s = span(x)
+function logpdf(d::DirichletPInt, x::AbstractVector{Int64})
+    s = 1:max(x...)
     c = counts(x,s)
     l = length(x)
     return _logpdfcounts(d,c,l)
 end
 
+logpdf(d::DirichletPInt, x::AbstractVector{Float64}) = logpdf(d,[Int(v) for v in x])
+
 # sampling
 
-function rand!{T<:Int64}(d::DirichletPInt{T}, x::AbstractVector{T})
+function rand!(d::DirichletPInt, x::AbstractVector{Int64})
     x[1] = curmax = T(1)
     n = length(x)
     α = d.alpha

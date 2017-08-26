@@ -9,8 +9,16 @@ eyes = Dict{Symbol, Any}(
      543.8, 543.9, 545.3, 546.2, 548.8, 548.7, 548.9, 549.0, 549.4, 549.9,
      550.6, 551.2, 551.4, 551.5, 551.6, 552.8, 552.9, 553.2],
   :N => 48, #should be divisible by 4 for inits below to work
-  :alpha => [1, 1]
+  :alpha => 1.
 )
+
+
+eyes[:mu0] = mean(eyes[:y])
+eyes[:sig0] = 2 * std(eyes[:y])
+eyes[:sigshape] = .25
+eyes[:hypershape] = .1
+eyes[:hyperscale] = .1
+
 
 
 
@@ -18,13 +26,11 @@ eyes = Dict{Symbol, Any}(
 model = Model(
 
   y = Stochelastic(1,
-    (lambda, T, s2, N) ->
+    (mu, sig, T, N) ->
       begin
-        sigma = sqrt(s2)
         UnivariateDistribution[
           begin
-            mu = lambda[Int(T[i])]
-            Normal(mu, sigma)
+            Normal(mu[Int(T[i])], sig[Int(T[i])])
           end
           for i in 1:N
         ]
@@ -37,22 +43,37 @@ model = Model(
     false
   ),
 
-  lambda = Logical(1,
-    (lambda0, theta) -> Float64[lambda0; lambda0 + theta]
-  ),
-
-  lambda0 = Stochastic(
-    () -> Normal(0.0, 1000.0),
+  mu = Stochelastic(1,
+    (mu0, sig0, T) ->
+      begin
+        s = 1:Int(max(T.value...))
+        UnivariateDistribution[
+          begin
+            Normal(mu0, sig0)
+          end
+          for i in s
+        ]
+      end,
     false
   ),
 
-  theta = Stochastic(
-    () -> Uniform(0.0, 1000.0),
+  sig = Stochelastic(1,
+    (sigshape, sigscale, T) ->
+      begin
+        s = 1:Int(max(T.value...))
+        UnivariateDistribution[
+          begin
+            InverseGamma(sigshape, sigscale)
+          end
+          for i in s
+        ]
+      end,
     false
   ),
 
-  s2 = Stochastic(
-    () -> InverseGamma(0.001, 0.001)
+  sigscale = Stochastic(
+    (hypershape, hyperscale) -> InverseGamma(hypershape, hyperscale),
+    false
   )
 
 )
@@ -60,22 +81,24 @@ model = Model(
 
 ## Initial Values
 inits = [
-  Dict(:y => eyes[:y], :T => repeat([1,2], outer=[eyes[:N]/2]), :P => [0.5, 0.5],
-       :lambda0 => 535, :theta => 5, :s2 => 10),
-  Dict(:y => eyes[:y], :T => repeat([1,1,2,2], outer=[eyes[:N]/4]), :P => [0.5, 0.5],
-       :lambda0 => 550, :theta => 1, :s2 => 1)
+  Dict(:y => eyes[:y], :T => repeat([1,2], outer=Int(eyes[:N]//2)),
+       :mu => [535.,540.], :sig => [10.,15.], :sigscale => eyes[:sigshape] * std(eyes[:y])),
+  Dict(:y => eyes[:y], :T => repeat([1,1,2,2], outer=Int(eyes[:N]//4)),
+       :mu => [550.,551.], :sig => [15.,25.], :sigscale => eyes[:sigshape] * std(eyes[:y]))
 ]
+
 
 
 ## Sampling Scheme
 scheme = [DGS(:T),
-          RJS(:T),
-          Slice([:lambda0, :theta], [5.0, 1.0]),
-          Slice(:s2, 2.0, transform=true),
-          SliceSimplex(:P, scale=0.75)]
+          Slice(:mu, 8.0),
+          Slice(:sig, 8.0),
+          Slice(:sigscale, 8.0),
+          RJS(:T)]
 setsamplers!(model, scheme)
 
 
 ## MCMC Simulations
-sim = mcmc(model, eyes, inits, 10000, burnin=2500, thin=2, chains=2)
-describe(sim)
+sim = mcmc(model, eyes, inits, 1000, burnin=250, thin=2,
+chains=2)
+#describe(sim)

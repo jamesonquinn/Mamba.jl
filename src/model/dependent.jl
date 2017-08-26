@@ -45,25 +45,29 @@ end
 #myvaltype{VV}(x::AbstractDependent{VV}) = VV
 #NodeType{VV}(x::AbstractDependent{VV}) = VV
 
+#asvec(x::SymDictVariateVals) = asvec(first(values(x.value))) #TODO: remove. Hack, because Sampler somehow leaves a one-key SymDict on the outside.
+
+asvec(x::DictVariateVals) = Float64[x[k] for k in keys(x)]
+
 #################### Base Methods ####################
 function start(nd::NestedDictVariateVals)
-  start(nd.vals)
+  start(nd.value)
 end
 
 function next(nd::NestedDictVariateVals,state)
-  next(nd.vals,state)
+  next(nd.value,state)
 end
 
 function done(nd::NestedDictVariateVals,state)
-  done(nd.vals,state)
+  done(nd.value,state)
 end
 
 function keyvals(nd::SymDictVariateVals)
-  nd.vals
+  nd.value
 end
 
 function keyvals(nd::VecDictVariateVals)
-  [Pair(i,nd.vals[i]) for i in 1:length(nd.vals)]
+  [Pair(i,nd.value[i]) for i in 1:length(nd.value)]
 end
 
 function keys(nd::NestedDictVariateVals)
@@ -177,12 +181,12 @@ end
 #################### Conversions ###############################
 
 function convert{SVT<:ScalarVariateType}(T::Type{Vector{SVT}}, v::VecDictVariateVals)
-  convert(T,v.vals) #Works only if all values are scalars
+  convert(T,v.value) #Works only if all values are scalars
 end
 
 function convert{SVT<:ScalarVariateType}(T::Type{SVT}, v::VecDictVariateVals)
-  length(v.vals) == 1 || throw(BoundsError())
-  vec = convert(Vector{T},v.vals) #Works only if all values are scalars
+  length(v.value) == 1 || throw(BoundsError())
+  vec = convert(Vector{T},v.value) #Works only if all values are scalars
   vec[1]
 end
 
@@ -250,35 +254,68 @@ function Logical(d::Integer, f::Function,
   setmonitor!(l, monitor)
 end
 
-function getindex(X::NestedDictVariateVals,i...)
+function getindex(X::NestedDictVariateVals,i::Union{Symbol,Int64}...)
   if length(i) == 1
-    return X.vals[i[1]]
+    return X.value[i[1]]
   else
-    return X.vals[i[1]][i[2:end]...]
+    return X.value[i[1]][i[2:end]...]
   end
 end
+
+getindex(X::NestedDictVariateVals,i::Tuple) = getindex(X,i...)
 
 function ensureIndexReady!(X::NestedDictVariateVals,i)
   #generically, do nothing
 end
 
 function ensureIndexReady!(X::VecDictVariateVals,i::Integer)
-  l = length(X.vals)
+  l = length(X.value)
   if l<i
-    append!(X.vals,fill(NaN,i-l))
+    append!(X.value,fill(NaN,i-l))
   end
 end
 
-function setindex!(X::NestedDictVariateVals,v,i...)
+function setindex!(X::NestedDictVariateVals{SVT},v,i::Union{Symbol, Int64}...) where SVT
   ensureIndexReady!(X,i[1])
-  if length(i) == 1
-    X.vals[i[1]] = v
-  else
-    if !haskey(X.vals,i[1])
-      X.vals[i[1]] = VecDictVariateVals{typeof(v)}()
-    end
-    X.vals[i[1]][i[2:end]...] = v
+  if !haskey(X.value,i[1])
+    X.value[i[1]] = VecDictVariateVals{typeof(v)}()
   end
+  X.value[i[1]][i[2:end]...] = v
+end
+
+function setindex_unsafe!(X::NestedDictVariateVals{SVT},v,i::Union{Symbol, Int64}) where SVT
+  X.value[i] = v
+end
+
+function setindex!(X::NestedDictVariateVals{SVT},v,i::Union{Symbol, Int64}) where SVT
+  ensureIndexReady!(X,i)
+  X.value[i] = v
+end
+
+function setindex!(X::NestedDictVariateVals{SVT},v::Vector,::Colon) where SVT
+  l = length(v)
+  X[l] = v[l]
+  for i in l-1:-1:1
+    setindex_unsafe!(X,v[i],i)
+  end
+end
+
+function copy(X::SymDictVariateVals{SVT}) where SVT
+  newX = typeof(X)()
+  for (key,value) in X
+    newX[key] = copy(value)
+  end
+  newX
+end
+
+function copy(X::VecDictVariateVals{SVT}) where SVT
+  newX = typeof(X)()
+  l = length(X.value)
+  newX[l] = X[l]
+  for i in l-1:-1:1
+    newX.value[i] = copy(X.value[i])
+  end
+  newX
 end
 
 

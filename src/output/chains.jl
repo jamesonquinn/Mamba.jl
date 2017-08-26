@@ -7,62 +7,62 @@ function myvaltype(x::AbstractDictChainVal{SVT}) where SVT
 end
 
 function getindex(cv::DictChainVal,i1::Int,i2::Int,i3::Tuple)
-  cv.vals[i1,i2][i3]
+  cv.value[i1,i2][i3]
 end
 
 function setindex!(cv::DictChainVal,v,i1::Int,i2::Int,i3::Tuple)
-  cv.vals[i1,i2][i3] = v
+  cv.value[i1,i2][i3] = v
 end
 
 function getindex(cv::VecDictChainVal,i1::Int,i3::Tuple)
-  cv.vals[i1][i3]
+  cv.value[i1][i3]
 end
 
 function setindex!(cv::VecDictChainVal,v,i1::Int,i3::Tuple)
-  cv.vals[i1][i3] = v
+  cv.value[i1][i3] = v
 end
 
 function getindex(cv::DictChainVal,i1::Int,i2::Int,i3::Colon)
-  cv.vals[i1,i2]
+  cv.value[i1,i2]
 end
 
 function setindex!(cv::DictChainVal,v,i1::Int,i2::Int,i3::Union{Colon,UnitRange}) #TODO: figure out why UnitRange is necessary here
-  cv.vals[i1,i2] = v
+  cv.value[i1,i2] = v
 end
 
 # const IntOrColon = Union{Int,Colon}
 #
 #
 # function getindex(cv::DictChainVal,i1::IntOrColon,i2::IntOrColon,i3::Colon)
-#   cv.vals[i1,i2]
+#   cv.value[i1,i2]
 # end
 #
 # function setindex!(cv::DictChainVal,v,i1::IntOrColon,i2::IntOrColon,i3::Colon)
-#   cv.vals[i1,i2] = v
+#   cv.value[i1,i2] = v
 # end
 #
 # function getindex(cv::DictChainVal,i1::IntOrColon,i2::IntOrColon,i3::Tuple)
-#   cv.vals[i1,i2]
+#   cv.value[i1,i2]
 # end
 #
 # function setindex!(cv::DictChainVal,v,i1::IntOrColon,i2::IntOrColon,i3::Tuple)
-#   cv.vals[i1,i2] = v
+#   cv.value[i1,i2] = v
 # end
 
-function cat(d::Int, cvs::AbstractVariateVals{SVT}...) where SVT #qqqq I think this type is too loose, maybe have to go rescue old version of this function?
-  allvals = [cv.vals for cv in cvs]
-  DictChainVal{SVT}(cat(d,[cv.vals for cv in cvs]...)) #will fail for d==3
+function cat(d::Int, cvs::AbstractDictChainVal{SVT,2}...) where SVT #qqqq I think this type (cvs::AbstractVariateVals) is too loose, maybe have to go rescue old version of this function?
+  allvals = [cv.value for cv in cvs]
+  DictChainVal{SVT,2}(cat(d,[cv.value for cv in cvs]...)) #will fail for d==3
   #problem: Cannot `convert` an object of type Array{Mamba.DictVariateVals{Float64},2} to an object of type Mamba.AbstractDictChainVal{SVT,2} where SVT
   #ie, we're passing in something shaped like the one attribute, and it's trying to "convert" not "construct"
   #qqqq above comments ara a misdiagnosis (?), problem was lack of {SVT}
-  #DictChainVal(cat(d,[cv.vals for cv in cvs]...)) #will fail for d==3
+  #DictChainVal(cat(d,[cv.value for cv in cvs]...)) #will fail for d==3
 end
 function vcat(cvs::DictChainVal...)
   cat(2,cvs...)
 end
 
 function size(x::AbstractDictChainVal)
-  (size(x.vals)...,-1)
+  (size(x.value)...,-1)
 end
 
 function size(x::AbstractDictChainVal,i::Int)
@@ -78,7 +78,7 @@ function size(x::AbstractChains,vargs...)
 end
 
 function fill!(x::Mamba.AbstractDictChainVal,v)
-  fill!(x.vals,NullDictVariateVals{myvaltype(x)}())
+  fill!(x.value,NullDictVariateVals{myvaltype(x)}())
 end
 
 #################### Constructors ####################

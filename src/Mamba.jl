@@ -4,8 +4,10 @@ module Mamba
 
   #################### Imports ####################
 
-  import Base: cor, dot, valtype, getindex, get, length, keys, setindex!,
-         start, next, done, ndims, convert, promote_rule, size, fill!, cat, vcat, hcat,
+  import Base: cor, dot,
+         valtype, getindex, get, length, keys, setindex!, copy,
+         start, next, done, ndims, convert, promote_rule, size, fill!,
+         cat, vcat, hcat,
          +, -, *, /, ^, |
   import Base.LinAlg: Cholesky
   import Calculus: gradient
@@ -99,7 +101,12 @@ module Mamba
 
   const LeafOrBranch{SVT} = Union{SVT,NestedDictVariateVals{SVT}} where SVT<:ScalarVariateType
   type SymDictVariateVals{SVT} <: NestedDictVariateVals{SVT}
-      vals::Dict{Symbol,LeafOrBranch{SVT}}
+      value::Dict{Symbol,LeafOrBranch{SVT}}
+
+
+      function SymDictVariateVals{SVT}() where SVT<:ScalarVariateType
+        new{SVT}(Dict{Symbol,LeafOrBranch{SVT}}())
+      end
 
       function SymDictVariateVals{SVT}(kv) where SVT<:ScalarVariateType
         new{SVT}(Dict{Symbol,LeafOrBranch{SVT}}(kv))
@@ -107,7 +114,7 @@ module Mamba
   end
 
   type VecDictVariateVals{SVT} <: NestedDictVariateVals{SVT}
-      vals::Vector{LeafOrBranch{SVT}}
+      value::Vector{LeafOrBranch{SVT}}
       qqqq::Bool #TODO: remove
 
       function VecDictVariateVals{SVT}() where SVT<:ScalarVariateType
@@ -123,6 +130,7 @@ module Mamba
         vdv
       end
   end
+
 
   #################### Dependent Types ####################
 
@@ -274,7 +282,7 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
   #################### Chains Type ####################
 
   immutable AbstractDictChainVal{SVT,N}
-    vals::Array{DictVariateVals{SVT},N}
+    value::Array{DictVariateVals{SVT},N}
     #uselessExtraComponent::Bool
   end
 
@@ -334,8 +342,8 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
   # include("output/gewekediag.jl")
   # include("output/heideldiag.jl")
   # include("output/mcse.jl")
-  # include("output/modelchains.jl")
-  # include("output/modelstats.jl")
+   include("output/modelchains.jl")
+   include("output/modelstats.jl")
   # include("output/rafterydiag.jl")
   # include("output/stats.jl")
   # include("output/plot.jl")
@@ -390,7 +398,8 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
   export
     BDiagNormal,
     Flat,
-    SymUniform
+    SymUniform,
+    DirichletPInt
 
   export
     autocor,

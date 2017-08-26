@@ -36,7 +36,29 @@ end
 Base.getindex(m::AbstractModel, nodekey::Symbol) = m.nodes[nodekey]
 
 
-function Base.setindex!(m::AbstractModel, value, nodekey::Symbol)
+function Base.setindex!(m::AbstractModel, value::ScalarVariateType, nodekey::Symbol)
+  node = m[nodekey]
+  if isa(node, AbstractDependent)
+    node.value = typeof(node.value)(value)
+  else
+    m.nodes[nodekey] = convert(typeof(node), value)
+  end
+end
+
+function Base.setindex!(m::AbstractModel, value::Array, nodekey::Symbol)
+  node = m[nodekey]
+  if isa(node, AbstractDependent)
+    if isa(node, Union{ScalarLogical, ScalarStochastic})
+      node.value = value[1]
+    else
+      node.value[:] = value
+    end
+  else
+    m.nodes[nodekey] = convert(typeof(node), value)
+  end
+end
+
+function Base.setindex!(m::AbstractModel, value::DictVariateVals, nodekey::Symbol)
   node = m[nodekey]
   if isa(node, AbstractDependent)
     node.value = value
@@ -45,10 +67,15 @@ function Base.setindex!(m::AbstractModel, value, nodekey::Symbol)
   end
 end
 
-function Base.setindex!(m::AbstractModel, values::Union{Dict,DictVariateVals}, nodekeys::Vector{Symbol})
-  for key in nodekeys
-    m[key] = values[key]
+function Base.setindex!(m::AbstractModel, values::Union{Dict,DictVariateVals}, nodekeys::Vector{Symbol}) where SVT
+  if length(nodekeys) > 1
+    for key in nodekeys
+      m[key] = values[key]
+    end
+  else
+    m[nodekeys[1]] = values
   end
+
 end
 
 function Base.setindex!(m::AbstractModel, value, nodekeys::Vector{Symbol})

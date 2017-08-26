@@ -141,7 +141,11 @@ function unlist{SVT}(m::ElasticModel{SVT}, nodekeys::Vector{Symbol}, transform::
   function fixtype(v)
     VecDictVariateVals{SVT}(Vector{LeafOrBranch{SVT}}([fixtype(sv) for sv in v]))
   end
-  SymDictVariateVals{SVT}(key => fixtype(unlist(m[key], transform)) for key in nodekeys)
+  if length(nodekeys) == 1
+    return fixtype(unlist(m[nodekeys[1]], transform))
+  else
+    return SymDictVariateVals{SVT}(key => fixtype(unlist(m[key], transform)) for key in nodekeys)
+  end
 end
 
 
@@ -186,7 +190,7 @@ function relist!(m::AbstractModel, x, block::Integer=0,
   update!(m, block)
 end
 
-function relist!{T<:Real}(m::AbstractModel, x::AbstractArray{T}, nodekey::Symbol,
+function relist!{T<:Real}(m::AbstractModel, x::AbstractVariateVals{T}, nodekey::Symbol,
                           transform::Bool=false)
   node = m[nodekey]
   m[nodekey] = relist(node, x, transform)

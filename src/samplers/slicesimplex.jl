@@ -39,7 +39,6 @@ function SliceSimplex(params::ElementOrVector{Symbol}; kargs...)
       x = unlist(node)
 
       sim = function(inds::Range, logf::Function)
-        println("qqqq types ",map(typeof,(x[inds], s, model.iter)))
         v = MakeSamplerVariate(x[inds], s; iter=model.iter, kargs...)
         sample!(v, logf)
       end

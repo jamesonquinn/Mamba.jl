@@ -91,22 +91,35 @@ end
 
 
 function sample!(v::SliceMultivariate, logf::Function)
-  p0 = logf(v.value) + log(rand())
+  p0 = logf(asvec(v.value)) + log(rand())
 
   n = length(v.value)
-  lower = v.value - v.tune.width .* rand(n)
-  upper = lower + v.tune.width
+  r = rand(n)
+  lower = asvec(v.value) .- (v.tune.width .* r)
+  upper = lower .+ v.tune.width
 
-  x = v.tune.width .* rand(n) + lower
+  x = (v.tune.width .* rand(n)) .+ lower
   while logf(x) < p0
+    println("qqqq  x $(x) l $(lower) u $(upper) av $(asvec(v.value))")
+
     for i in 1:n
+
       value = x[i]
       if value < v.value[i]
         lower[i] = value
       else
         upper[i] = value
       end
-      x[i] = rand(Uniform(lower[i], upper[i]))
+      println("qqqq2  x $(x[i]) l $(lower[i]) u $(upper[i])")
+      if lower[i] < upper[i]
+        x[i] = rand(Uniform(lower[i], upper[i]))
+      else
+        println("Bad Uniform distribution in slice sampler... what happened?")
+        println("$(v.tune.width) $(r) $(v.tune.width .* r) $(asvec(v.value) .- v.tune.width .* r)")
+        println("$(value) $(i) $(x) $(lower) $(upper)  $(asvec(v.value))")
+        throw(ArgumentError("Bad Uniform distribution in slice sampler."))
+      end
+
     end
   end
   v.value[:] = x
