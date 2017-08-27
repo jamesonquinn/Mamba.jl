@@ -66,6 +66,17 @@ function logpdf(m::AbstractModel, nodekeys::Vector{Symbol}, transform::Bool=fals
   lp
 end
 
+function logpdf(m::AbstractModel, nodekeys::Vector{Symbol}, transform::Bool=false;
+      kargs...)
+  logpdf(m,nodekeys,transform) #ignore index. Very inefficient but works. TODO: implement single-index logpdf
+  # lp = 0.0
+  # for key in nodekeys
+  #   lp += logpdf(m[key], transform; kargs...)
+  #   isfinite(lp) || break
+  # end
+  # lp
+end
+
 function logpdf{T<:Real}(m::AbstractModel, x::AbstractArray{T}, block::Integer=0,
                          transform::Bool=false)
   x0 = unlist(m, block)

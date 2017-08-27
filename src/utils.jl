@@ -2,6 +2,7 @@
 |(a::Void,b)=b
 const Maybe{T} = Union{T, Void}
 isnull(::Void) = true
+isnull(x) = false
 
 #################### Model Expression Operators ####################
 TypeLike = Union{UnionAll,DataType,Type}

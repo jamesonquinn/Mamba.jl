@@ -43,7 +43,7 @@ function validate(v::EitherDGSVariate, support::Matrix)
 end
 
 validate(v::DiscreteVariate, support::Matrix, mass::Maybe{Vector{Float64}}) =
-  isnull(mass) ? v : validate(v, support, get(mass))
+  isnull(mass) ? v : validate(v, support, mass) #TODO: check, should this Maybe be Nullable (with a get(mass))?
 
 function validate(v::EitherDGSVariate, support::Matrix, mass::Vector{Float64})
   n = length(mass)
@@ -53,9 +53,15 @@ function validate(v::EitherDGSVariate, support::Matrix, mass::Vector{Float64})
 end
 
 
-#################### Sampler Constructor ####################
+
+
+
+
+################### Sampler Constructor ####################
 """
-    DGS(params::ElementOrVector{Symbol},
+    DGS(params::ElementOrVector{Symbol})
+
+    if returnLogp is true, returns a function whose arguments include:
               overSupport=Maybe{Vector{Int}}(), overIndices=Maybe{Vector{Int}}()
               getTargetIndex::Maybe{Function})
 
@@ -66,25 +72,29 @@ end
 - `overIndices`: which indices of the node(s) to resample, if not all
 - `getTargetIndex`: when resampling, which target values to calculate the logpdf for, if not all.
 """
-function DGS(params::ElementOrVector{Symbol},
-          overSupport::Maybe{Vector{Int}}=nothing, supportWeights::Maybe{AbstractVector{Float64}}=nothing,
-          overIndices::Maybe{Vector{Int}}=nothing,
-          getTargetIndex::Maybe{Function}=nothing;
-          returnLogp = false)
-  if !isnull(supportWeights)
-    w = repeat(0.,length(supportWeights))
-    tot = sum([supportWeights[s] for s in overSupport])
-    for s in overSupport
-      w[s] = supportWeights[s] / tot
-    end
-  end
+function DGS(params::ElementOrVector{Symbol}, returnLogp = false)
   params = asvec(params)
-  samplerfx = function(model::AbstractModel, block::Integer, proposal::Maybe{(DictVariateVals{SVT} where SVT)}=nothing; kargs...)
+  println("creating DGS for $(params)")
+  samplerfx = function(model::AbstractModel, block::Integer,
+    proposal::Maybe{(DictVariateVals{SVT} where SVT)}=nothing,
+              overSupport::Maybe{Vector{Int}}=nothing, supportWeights::Maybe{AbstractVector{Float64}}=nothing,
+              overIndices::Maybe{Vector{Int}}=nothing,
+              getTargetIndex::Maybe{Function}=nothing; kargs...)
     #A function that goes in the Sampler object; when called by sample! (line #?),
     #it loops over blocks, and for each block, calls DGS_sub!, which loops over indices
-    s = model.samplers[block]
-    local node, x, xAsInt
+    local node, x, xAsInt #TODO: more local vars
+
+    if !isnull(supportWeights)
+      w = fill(0.,length(supportWeights))
+      tot = sum([supportWeights[s] for s in overSupport])
+      #tot = sum([get(()->0.,supportWeights,s) for s in overSupport])
+      for s in overSupport
+        w[s] = supportWeights[s] / tot
+      end
+    end
+
     logptot = 0
+    println("using DGS at block $(block) for $(params)")
     for key in params
       node = model[key]
       if isnull(proposal)
@@ -96,7 +106,7 @@ function DGS(params::ElementOrVector{Symbol},
       sup = emptysup = range(1,0)'
 
       sim = function(i::Integer, d::DGSUnivariateDistribution, mass::Function)
-        v = DGSVariate([x[i]], !isnull(overSupport) ? overSupport : (
+        v = DGSVariate([x[i]], !isnull(overSupport) ? overSupport' : (
                                     !isa(d,DirichletPInt) ? support(d)' : (
                                         sup==emptysup ? sup=(1:Int(max(x.value...)))' : sup
                                     )))
@@ -115,7 +125,7 @@ function DGS(params::ElementOrVector{Symbol},
         x[i] = myvaltype(x)(value)
         xAsInt[i] = Int(value)
         relist!(model, x, key)
-        targetIndex = isnull(getTargetIndex) ? () : (get(getTargetIndex)(i),)
+        targetIndex = isnull(getTargetIndex) ? () : (getTargetIndex(i),) #optional parameter idiom, yuck
         if isa(d,DirichletPInt)
           if isnull(supportWeights)
             counts = countmap(x.value)
@@ -139,19 +149,27 @@ function DGS(params::ElementOrVector{Symbol},
           end
         end
 
-
-        exp(logpdf(d, value) + logpdf(model, node.targets, targetIndex...))
+        if isnull(targetIndex)
+          return exp(logpdf(d, value) + logpdf(model, node.targets))
+        else
+          return exp(logpdf(d, value) + logpdf(model, node.targets; index=targetIndex))
+        end
       end
 
-      indices = isnull(overIndices) ? () : (get(overIndices),)
+      indices = isnull(overIndices) ? () : (overIndices,) #this is how you make arguments optional when passing them on... ugly idiom
       logptot += DGS_sub!(node.distr, sim, mass, indices...)
     end
-    if returnLogp
-      return logptot
-    end
-    nothing
+    logptot
   end
-  Sampler(params, samplerfx, DSTune{Function}())
+  if returnLogp
+    return samplerfx #used directly as a substep for reversible jump
+  else
+    function sfx(args...)
+      samplerfx(args...)
+      nothing
+    end
+    return Sampler(params, sfx, DSTune{Function}())
+  end
 end
 
 
@@ -175,9 +193,12 @@ function DGS_sub!(D::Array{UnivariateDistribution}, sim::Function,
 end
 
 function DGS_sub!(D::DirichletPInt, sim::Function,
-                  mass::Function)
+                  mass::Function, indices::Union{Vector{Int}, Void}=nothing)
   logp = 0.
-  for i in 1:D.len
+  if indices==nothing
+    indices = 1:D.len
+  end
+  for i in indices
     logp += sim(i, D, v -> mass(D, v, i))
   end
   logp

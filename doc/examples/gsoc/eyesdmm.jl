@@ -94,7 +94,7 @@ scheme = [DGS(:T),
           Slice(:mu, 8.0),
           Slice(:sig, 8.0),
           Slice(:sigscale, 8.0),
-          RJS(:T)]
+          RJS(:T, model)]
 setsamplers!(model, scheme)
 
 

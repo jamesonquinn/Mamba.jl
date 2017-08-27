@@ -22,24 +22,6 @@ const RJSVariate = DictSamplerVariate{DSTune{Vector{Float64}}}
 
 validate(v::RJSVariate) = validate(v, v.tune.support)
 
-#
-# function validate{F<:DSForm}(v::SamplerVariate{DSTune{F}}, support::Matrix)
-#   n = length(v)
-#   size(support, 1) == n ||
-#     throw(ArgumentError("size(support, 1) differs from variate length $n"))
-#   v
-# end
-#
-# validate(v::DiscreteVariate, support::Matrix, mass::Nullable{Vector{Float64}}) =
-#   isnull(mass) ? v : validate(v, support, get(mass))
-#
-# function validate(v::DiscreteVariate, support::Matrix, mass::Vector{Float64})
-#   n = length(mass)
-#   size(support, 2) == n ||
-#     throw(ArgumentError("size(support, 2) differs from mass length $n"))
-#   v
-# end
-
 
 #################### Sampler Constructor ####################
 
@@ -77,8 +59,8 @@ function proposeSplitParams!(conditionalDist::Normal,
   w0 = weights[k]
   mu0 = params[condParamIndices[1]...,k]
   sig0 = params[condParamIndices[2]...,k]
-  w1 = w0 * u1
-  w2 = w0 - w1
+  weights[k] = w1 = w0 * u1
+  weights[j] = w2 = w0 - w1
   sqrtu1odds = sqrt(u1/(1.-u1))
   mu1 = mu0 - u2*sig0/sqrtu1odds
   mu2 = mu0 + u2*sig0*sqrtu1odds
@@ -89,9 +71,10 @@ function proposeSplitParams!(conditionalDist::Normal,
   params[condParamIndices[1]...,j] = mu2
   params[condParamIndices[2]...,j] = sig2
   logAfac= (log(w0*abs(mu1-mu2)*sig1*sig2/(u2*(1-u2^2)*u3*(1-u3)*sig0)) #jacobian
-    -logpdf(u2dist,u2)-logpdf(u3dist,u3) #density; because of our choice of dist, u1 cancels out
-    +logpdf(hyperParamDists[1],mu1)+logpdf(hyperParamDists[1],mu2)-logpdf(hyperParamDists[1],mu0)
-    +logpdf(hyperParamDists[2],sig1)+logpdf(hyperParamDists[2],sig2)-logpdf(hyperParamDists[2],sig0))
+    -logpdf(u2dist,u2)-logpdf(u3dist,u3)) #density; because of our choice of dist, u1 cancels out
+    #the factors due to prior probability of the parameters are part of the posterior ratio.
+        #+logpdf(hyperParamDists[1],mu1)+logpdf(hyperParamDists[1],mu2)-logpdf(hyperParamDists[1],mu0)
+        #+logpdf(hyperParamDists[2],sig1)+logpdf(hyperParamDists[2],sig2)-logpdf(hyperParamDists[2],sig0))
   #A = Afac * (posterior ratio) / P(allocation)
   logAfac
 end
@@ -115,7 +98,8 @@ function proposeMergeParams!(conditionalDist::Normal,
         params::DictVariateVals{SVT}, condParamIndices::Vector{Tup},
         weights::AbstractVector{Float64},
         hyperParamDists::Maybe{Vector{UnivariateDistribution}}=nothing,
-        tune::Maybe{RJTune}=nothing) where SVT where Tup<:Tuple
+        tune::Maybe{RJTune}=nothing,
+        u2dist=Beta(2,2), u3dist=Beta(1,1)) where SVT where Tup<:Tuple
 
   w1 = weights[j]
   mu1 = params[condParamIndices[1]...,j]
@@ -123,13 +107,18 @@ function proposeMergeParams!(conditionalDist::Normal,
   w2 = weights[k]
   mu2 = params[condParamIndices[1]...,k]
   sig2 = params[condParamIndices[2]...,k]
-  w0 = w1+w2
+  weights[k] = w0 = w1+w2
+  weights[j] = 0
   mu0 = (mu1*w1 + mu2*w2)/w0
   params[condParamIndices[1]...,k] = mu0
   sig0 = sqrt(mu1*(sig1^2 + (mu1-mu0)^2) + mu2*(sig2^2 + (mu2-mu0)^2))
   params[condParamIndices[2]...,k] = sig0
-  u1 = (mu0-mu1)/(mu2-mu1)
-  u2 = (mu2-mu0)/sig0*sqrt(w2/w1)
+  u1 = (mu0-mu1)/(mu2-mu1) #should always be positive if w1 and w2 both are.
+  u2 = abs(mu2-mu0)/sig0*sqrt(w2/w1)
+  u3 = ((sig1/sig2)^2)*w1/w0/(1-u2^2)
+  println("qqqq w120 $(w1) $(w2) $(w0)")
+  println("qqqq u123 $(u1) $(u2) $(u3)")
+  ((u3 < 1) && (u3 > 0)) || throw(ErrorException("u3 not in (0,1)"))
   logAfac= (log(w0*abs(mu1-mu2)*sig1*sig2/(u2*(1-u2^2)*u3*(1-u3)*sig0)) #jacobian
     -logpdf(u2dist,u2)-logpdf(u3dist,u3) #density; because of our choice of dist for u1, it cancels out
     )
@@ -145,7 +134,23 @@ end
 #   [s.distr for s in tnode.sources[1:end-2]]
 # end
 
-function RJS(param::Symbol, splitprob=0.5) #TODO: allow use on hierarchical stuff; param::Tuple??
+function RJS(param::Symbol, themodel::AbstractModel, splitprob=0.5) #TODO: allow use on hierarchical stuff; param::Tuple??
+
+  #figure out which target is the "bottom";
+  #e.g., the Normally-distributed one, not the mean or sd thereof.
+
+  thenode = themodel[param]
+  targets=Set{Symbol}(thenode.targets)
+  allSourceParamsOfTargets=Set{Symbol}()
+  for target in targets
+    tnode = themodel[target]
+    union!(allSourceParamsOfTargets,Set{Symbol}(tnode.sources))
+  end
+  setdiff!(targets,allSourceParamsOfTargets)
+  sourceParamsOfTargets=setdiff(Set{Symbol}(thenode.targets),targets)
+
+  assigner! = DGS(param; returnLogp = true) #must be declared outside function below or you get world problems
+  checkAssign = (args...)->assigner!(args...; donothing = true)
 
   samplerfx = function(model::AbstractModel, block::Integer)
 
@@ -169,42 +174,27 @@ function RJS(param::Symbol, splitprob=0.5) #TODO: allow use on hierarchical stuf
     #latent weights of groups.
     #This is just a Gibbs sample from the distribution of the latent weights, which
     # depends only on the counts and the dirichlet process parameter.
-    rawweights = Vector{Float64}(ln)
-    sum = 0.
+    newweights = fill(0.,mx+1) #leave room to grow
+    sumweights = 0.
     for i in 1:ln
-      sum += rawweights[i] = rand(Gamma(counts[groups[i]] + alpha))
+      sumweights += newweights[groups[i]] = rand(Gamma(counts[groups[i]]))
     end
-    w = ProbabilityWeights([get(rawweights,i,0.)/sum for i in 1:mx])
+    oldweights = ProbabilityWeights(newweights/sumweights)
+    #TODO: do I need to divide by sum and make a ProbabilityWeights? I don't think I ever actually use that, could save the time.
 
     splitIndicator = rand()<splitprob
-
-    #figure out which target is the "bottom";
-    #e.g., the Normally-distributed one, not the mean or sd thereof.
-    targets=Set{Symbol}(node.targets)
-    alltargetparams=Set{Symbol}()
-    for target in targets
-      tnode = model[target]
-      println("qqqq alltargetparams $(target) $(tnode.sources)")
-      union!(alltargetparams,Set{Symbol}(tnode.sources))
-    end
-    setdiff!(targets,alltargetparams)
-    targetparams=Set{Symbol}()
-    for target in targets
-      tnode = model[target]
-      println("qqqq targetparams $(target) $(tnode.sources)")
-      union!(targetparams,Set{Symbol}(tnode.sources))
-    end
-    setdiff!(targetparams,[param])
-    println("qqqq targets $(targets) $(targetparams)")
 
     if splitIndicator
 
       #choose group to split
-      k = sample(w)
+      k = sample(oldweights)
 
       #where to put new group
       if ln == mx #no gaps
         j = mx + 1 #index of new proposed group, if needed
+        for target in sourceParamsOfTargets #all params
+          proposal[target,j] = NaN #make room
+        end
       else
         sort!(groups)
         for j in 1:ln
@@ -214,10 +204,9 @@ function RJS(param::Symbol, splitprob=0.5) #TODO: allow use on hierarchical stuf
         end
       end
 
+      println("qqqq splitting $(k) $(j) $(oldweights)")
 
-      #propose individual splits
-
-
+      #propose individual splits — parameters for each group
       for target in targets
         tnode = model[target]
         musigfrom = tnode.sources[1:end-2]
@@ -226,17 +215,23 @@ function RJS(param::Symbol, splitprob=0.5) #TODO: allow use on hierarchical stuf
                 j, #index of new proposed group
                 params(node.distr)[1],
                 proposal, [(param,) for param in musigfrom],
-                w
+                newweights
                 )#TODO: tune
-        assigner = DGS(target,
-              [k,j], w,
-              [i for i in 1:length[cur[param]] if cur[param,i]==k],
-              i -> i;
-              returnLogp = true)
-        logA += assigner.eval(model,block,proposal)
       end
-      for param in targetparams
-        #account for priors/hyperparameters on params
+
+      #assign elems to newly-specified groups and adjust acceptance prob
+      itemsToAssign = [i for i in 1:length(cur[param]) if cur[param,i]==k]
+      logA -= checkAssign(model,block,cur,
+          [k,j], oldweights,
+          itemsToAssign,
+          i -> i)
+      logA += assigner(model,block,proposal,
+          [k,j], newweights,
+          itemsToAssign,
+          i -> i)
+
+      #account for priors/hyperparameters on params
+      for param in sourceParamsOfTargets
         relist!(model, cur)
         logA -= logpdf(model, param)
 
@@ -250,54 +245,66 @@ function RJS(param::Symbol, splitprob=0.5) #TODO: allow use on hierarchical stuf
       #merge
 
       #choose group to merge to (by weight)
-      k = sample(w)
+      k = sample(oldweights)
 
       #choose group to merge from (uniform random)
-      j = rand(groups)
+      mergeables = setdiff(Set(groups),[k])
+      if length(mergeables) > 0
+        j = rand(mergeables)
 
-      #propose individual splits
+        println("qqqq merging $(k) $(j) $(oldweights) $(groups)")
+        #propose individual splits
 
-      for target in targets
-        tnode = model[target]
-        musigfrom = tnode.sources[1:end-2]
-        logA += proposeMergeParams!(tnode.distr[k],
-                k, #index of existing group
-                j, #index of new proposed group
-                params(node.distr)[1],
-                proposal, [(param,) for param in musigfrom],
-                w) #TODO: tune
+        for target in targets
+          tnode = model[target]
+          musigfrom = tnode.sources[1:end-2]
+          logA += proposeMergeParams!(tnode.distr[k],
+                  k, #index of existing group
+                  j, #index of new proposed group
+                  params(node.distr)[1],
+                  proposal, [(param,) for param in musigfrom],
+                  newweights) #TODO: tune
+        end
 
-        assigner = DGS(target,
-              [k,j], w,
-              [i for i in 1:length[cur[param]] if cur[param,i] in [j,k]],
-              i -> i;
-              returnLogp = true
-              )
-        logA += assigner.eval(model,block,proposal)
-      end
-      for param in targetparams
-        #account for priors/hyperparameters on params
-        relist!(model, cur)
-        logA -= logpdf(model, param)
+        #move elems to newly-specified group and adjust acceptance prob
+        itemsToAssign = [i for i in 1:length([cur[param]]) if cur[param,i] in [j,k]]
+        for i in itemsToAssign
+          proposal[param,i] = Float64(k)
+        end
+        logA += checkAssign(model,block,cur,
+            [k,j], oldweights,
+            itemsToAssign,
+            i -> i)
+        logA -= checkAssign(model,block,proposal,
+              [k,j], newweights,
+              itemsToAssign,
+              i -> i)
+
+
+        for param in sourceParamsOfTargets
+          #account for priors/hyperparameters on params
+          relist!(model, cur)
+          logA -= logpdf(model, param)
+
+          relist!(model, proposal)
+          logA += logpdf(model, param)
+
+        end
 
         relist!(model, proposal)
-        logA += logpdf(model, param)
+        logA += logpdf(model,block)
 
+        if !splitIndicator
+          logA = -logA
+        end
+
+        acceptIndicator = rand() < exp(logA)
+        if !acceptIndicator
+          relist!(model, cur)
+        end
+
+        acceptIndicator
       end
-
-      relist!(model, proposal)
-      logA += logpdf(model,block)
-
-      if !splitIndicator
-        logA = -logA
-      end
-
-      acceptIndicator = rand() < exp(logA)
-      if !acceptIndicator
-        relist!(model, cur)
-      end
-
-      acceptIndicator
     end
     nothing
   end
