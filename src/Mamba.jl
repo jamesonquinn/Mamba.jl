@@ -265,11 +265,17 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
   type AbstractModel{StateType} #where StateType <: Variate
     nodes::Dict{Symbol, Any}
     samplers::Vector{Sampler}
-    states::Vector{AbstractModelState{StateType}}
+    states::Vector{T} where T<:AbstractModelState{StateType}
     iter::Int
     burnin::Int
     hasinputs::Bool
     hasinits::Bool
+
+    function AbstractModel{StateType}(nodes::Dict{Symbol, Any},
+            iter::Integer, burnin::Integer) where StateType
+      new{StateType}(nodes, Sampler[], AbstractModelState{StateType}[],
+            iter, burnin, false, false)
+    end
   end
 
   const Model{SVT} = AbstractModel{ArrayVariateVals{SVT,1}}

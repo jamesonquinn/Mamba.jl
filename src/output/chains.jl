@@ -49,13 +49,9 @@ end
 #   cv.value[i1,i2] = v
 # end
 
-function cat(d::Int, cvs::AbstractDictChainVal{SVT,2}...) where SVT #qqqq I think this type (cvs::AbstractVariateVals) is too loose, maybe have to go rescue old version of this function?
+function cat(d::Int, cvs::AbstractDictChainVal{SVT,2}...) where SVT #TODO: I think this type (cvs::AbstractVariateVals) is too loose, maybe have to go rescue old version of this function?
   allvals = [cv.value for cv in cvs]
-  DictChainVal{SVT,2}(cat(d,[cv.value for cv in cvs]...)) #will fail for d==3
-  #problem: Cannot `convert` an object of type Array{Mamba.DictVariateVals{Float64},2} to an object of type Mamba.AbstractDictChainVal{SVT,2} where SVT
-  #ie, we're passing in something shaped like the one attribute, and it's trying to "convert" not "construct"
-  #qqqq above comments ara a misdiagnosis (?), problem was lack of {SVT}
-  #DictChainVal(cat(d,[cv.value for cv in cvs]...)) #will fail for d==3
+  DictChainVal{SVT,2}(cat(d,[cv.value for cv in cvs]...))
 end
 function vcat(cvs::DictChainVal...)
   cat(2,cvs...)

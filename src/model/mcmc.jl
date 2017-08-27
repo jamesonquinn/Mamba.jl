@@ -36,7 +36,7 @@ end
 function mcmc_master!{ST}(m::AbstractModel{ST}, window::UnitRange{Int}, burnin::Integer,
                       thin::Integer, chains::AbstractArray{Int}, verbose::Bool)
   states = m.states
-  m.states = ModelState[]
+  m.states = statetype(m)[]
 
   N = length(window)
   K = length(chains)
@@ -53,7 +53,7 @@ function mcmc_master!{ST}(m::AbstractModel{ST}, window::UnitRange{Int}, burnin::
 
   sims  = Chains[results[k][1] for k in 1:K]
   model = results[1][2]
-  model.states = AbstractModelState[results[k][3] for k in sortperm(chains)]
+  model.states = statetype(model)[results[k][3] for k in sortperm(chains)]
 
   ModelChains(cat(2, sims...), model) #qq
 end

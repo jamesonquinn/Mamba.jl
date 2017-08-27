@@ -110,7 +110,6 @@ function DGS(params::ElementOrVector{Symbol}, returnLogp = false)
                                     !isa(d,DirichletPInt) ? support(d)' : (
                                         sup==emptysup ? sup=(1:Int(max(x.value...)))' : sup
                                     )))
-        println("qqqq simmy $i $overSupport")
         if length(kargs) > 0
           logp = sample!(v, mass; kargs...)
         else
@@ -245,7 +244,6 @@ function sample!(v::DGSVariate, mass::Function; donothing::Bool=false)
     while r<n && tune.support[:,r] != v
       r+=1
     end
-    println("qqqq sample $r $v $(tune.support)")
   else
     r = rand(Categorical(probs)) #TODO: wouldn't "sample" be faster here?
   end

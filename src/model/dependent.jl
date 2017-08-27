@@ -99,7 +99,7 @@ function ndims(ndd::AbstractElasticDependent)
   if length(k) > 0
     return length(k[1])
   else
-    return 1 #qqqq this is just a guess
+    return 1 #TODO: fix. this is just a guess.
   end
 end
 
@@ -260,6 +260,10 @@ function getindex(X::NestedDictVariateVals,i::Union{Symbol,Int64}...)
   else
     return X.value[i[1]][i[2:end]...]
   end
+end
+
+function getindex(X::NestedDictVariateVals,all_i::Vector)
+  [getindex(X,i) for i in all_i]
 end
 
 getindex(X::NestedDictVariateVals,i::Tuple) = getindex(X,i...)

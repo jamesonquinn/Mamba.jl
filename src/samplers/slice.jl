@@ -109,7 +109,6 @@ function sample!(v::SliceMultivariate, logf::Function)
       else
         upper[i] = value
       end
-      println("qqqq2 slice x $(x[i]) l $(lower[i]) u $(upper[i])")
       if lower[i] < upper[i]
         x[i] = rand(Uniform(lower[i], upper[i]))
       else

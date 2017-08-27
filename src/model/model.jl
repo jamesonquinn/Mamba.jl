@@ -4,6 +4,8 @@ nodetype{VV}(x::AbstractModel{VV}) = VV
 nodetype(x::AbstractFixedDependent) = ArrayVariateVals{Float64,1}
 nodetype(x::AbstractElasticDependent) = DictVariateVals{Float64}
 
+statetype{VV}(x::AbstractModel{VV}) = AbstractModelState{VV}
+
 #################### Constructors ####################
 
 function Model(; iter::Integer=0, burnin::Integer=0,
@@ -16,7 +18,7 @@ function Model(; iter::Integer=0, burnin::Integer=0,
     node.symbol = key
     nodedict[key] = node
   end
-  m = AbstractModel{nodetype(nodes[1][2])}(nodedict, Sampler[], ModelState[], iter, burnin, false, false)
+  m = AbstractModel{nodetype(nodes[1][2])}(nodedict, iter, burnin)
   dag = ModelGraph(m)
   dependentkeys = keys(m, :dependent)
   terminalkeys = keys(m, :stochastic)

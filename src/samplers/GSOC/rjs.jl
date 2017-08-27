@@ -121,9 +121,6 @@ function proposeMergeParams!(conditionalDist::Normal,
   evOverEvve = (sig1^2*w1 + sig2^2*w2)/(sig0^2*w0)
   u2 = sqrt(1-evOverEvve) #u2 governs how much of the variance is external to both components combined — the V(E) part of E(V)+V(E)
   u3 = ((sig1/sig0)^2)*u1/evOverEvve #u3 governs how the internal variance is broken down between the two
-  println("qqqq w120 $(w1) $(w2) $(w0)")
-  println("qqqq mu120 $(mu1) $(mu2) $(mu0)")
-  println("qqqq sig120 $(sig1) $(sig2) $(sig0)")
   println("qqqq u123 $(u1) $(u2) $(u3)")
   ((u3 < 1) && (u3 > 0)) || throw(ErrorException("u3 not in (0,1)"))
   logAfac= (log(w0*abs(mu1-mu2)*sig1*sig2/(u2*(1-u2^2)*u3*(1-u3)*sig0)) #jacobian
