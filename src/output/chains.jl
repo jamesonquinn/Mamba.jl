@@ -51,7 +51,7 @@ end
 
 function cat(d::Int, cvs::AbstractDictChainVal{SVT,2}...) where SVT #TODO: I think this type (cvs::AbstractVariateVals) is too loose, maybe have to go rescue old version of this function?
   allvals = [cv.value for cv in cvs]
-  DictChainVal{SVT,2}(cat(d,[cv.value for cv in cvs]...))
+  DictChainVal{SVT}(cat(d,[cv.value for cv in cvs]...))
 end
 function vcat(cvs::DictChainVal...)
   cat(2,cvs...)

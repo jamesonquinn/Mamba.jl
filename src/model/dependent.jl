@@ -255,11 +255,11 @@ function Logical(d::Integer, f::Function,
 end
 
 function getindex(X::NestedDictVariateVals,i::Union{Symbol,Int64}...)
-  if length(i) == 1
-    return X.value[i[1]]
-  else
-    return X.value[i[1]][i[2:end]...]
-  end
+  return X.value[i[1]][i[2:end]...]
+end
+
+function getindex(X::NestedDictVariateVals,i::Union{Symbol,Int64})
+  X.value[i]
 end
 
 function getindex(X::NestedDictVariateVals,all_i::Vector)

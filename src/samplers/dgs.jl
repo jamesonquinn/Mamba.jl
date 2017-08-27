@@ -94,7 +94,6 @@ function DGS(params::ElementOrVector{Symbol}, returnLogp = false)
     end
 
     logptot = 0
-    println("using DGS at block $(block) for $(params)")
     for key in params #TODO: need to make this a closure, otherwise key will change before it's called
       node = model[key]
       if isnull(proposal)
@@ -206,7 +205,6 @@ function DGS_sub!(D::DirichletPInt, sim::Function,
     myindices2 = myindices
   end
   for i in myindices2
-
     logp += sim(i, D, v -> mass(D, v, i))
   end
   logp

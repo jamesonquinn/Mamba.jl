@@ -95,11 +95,11 @@ inits = [
   Dict(:y => eyes[:y], :T => repeat([1,2], outer=Int(eyes[:N]//2)),
        :mu => [535.,540.], :sig => [10.,15.],
        :sigscale => eyes[:sigshape] * std(eyes[:y]),
-       :G => 20.), #evil hack! Should be 2.
+       :G => 7.), #evil hack! Should be 2.
   Dict(:y => eyes[:y], :T => repeat([1,1,2,2], outer=Int(eyes[:N]//4)),
        :mu => [550.,551.], :sig => [15.,25.],
        :sigscale => eyes[:sigshape] * std(eyes[:y]),
-       :G => 20.) #evil hack! Should be 2.
+       :G => 7.) #evil hack! Should be 2.
 ]
 
 
@@ -115,7 +115,11 @@ scheme = [DGS(:T),
 setsamplers!(model, scheme)
 
 
+Profile.init(n = 10^7, delay = 0.02)
 ## MCMC Simulations
-sim = mcmc(model, eyes, inits, 300, burnin=150, thin=2,
+sim = mcmc(model, eyes, inits, 200, burnin=100, thin=2,
+chains=2)
+
+@profile sim = mcmc(model, eyes, inits, 200, burnin=100, thin=2,
 chains=2)
 #describe(sim)

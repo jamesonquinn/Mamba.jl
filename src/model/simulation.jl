@@ -135,7 +135,6 @@ function unlist(m::ElasticModel, monitoronly::Bool)
   f = function(key)
     node = m[key]
     lvalue = unlist(node)
-    println("qqqq unlist $(node.monitor) $(typeof(lvalue))")
     r = monitoronly ? lvalue[node.monitor] : lvalue
     VecDictVariateVals{myvaltype(m)}(r)
   end

@@ -121,7 +121,6 @@ function proposeMergeParams!(conditionalDist::Normal,
   evOverEvve = (sig1^2*w1 + sig2^2*w2)/(sig0^2*w0)
   u2 = sqrt(1-evOverEvve) #u2 governs how much of the variance is external to both components combined — the V(E) part of E(V)+V(E)
   u3 = ((sig1/sig0)^2)*u1/evOverEvve #u3 governs how the internal variance is broken down between the two
-  println("qqqq u123 $(u1) $(u2) $(u3)")
   ((u3 < 1) && (u3 > 0)) || throw(ErrorException("u3 not in (0,1)"))
   logAfac= (log(w0*abs(mu1-mu2)*sig1*sig2/(u2*(1-u2^2)*u3*(1-u3)*sig0)) #jacobian
     -logpdf(u2dist,u2)-logpdf(u3dist,u3) #density; because of our choice of dist for u1, it cancels out
@@ -196,8 +195,6 @@ function RJS(dpparam::Symbol, themodel::AbstractModel, groupNumParam::Symbol, sp
       if ln == mx #no gaps
         j = mx + 1 #index of new proposed group, if needed
         for aparam in sourceParamsOfTargets #all params
-          println("qqqq making room $aparam $j")
-          println(" $(typeof(proposal[:sigscale]))")
           proposal[aparam,j] = NaN #make room
           proposal[groupNumParam,1] = Float64(j)
           cur[groupNumParam,1] = Float64(j)
@@ -213,8 +210,6 @@ function RJS(dpparam::Symbol, themodel::AbstractModel, groupNumParam::Symbol, sp
           end
         end
       end
-
-      println("qqqq splitting $(k) $(j) $(oldweights)")
 
       #propose individual splits — parameters for each group
       for target in targets
@@ -264,7 +259,6 @@ function RJS(dpparam::Symbol, themodel::AbstractModel, groupNumParam::Symbol, sp
       if length(mergeables) > 0
         j = rand(mergeables)
 
-        println("qqqq merging $(k) $(j) $(oldweights) $(groups)")
         #propose individual splits
 
         for target in targets
@@ -314,6 +308,10 @@ function RJS(dpparam::Symbol, themodel::AbstractModel, groupNumParam::Symbol, sp
     acceptIndicator = rand() < exp(logA)
     if !acceptIndicator
       relist!(model, cur)
+    end
+
+    if true #TODO: replace with debug conditional
+      #println("qqqq $(acceptIndicator ? :YES : :NOT) $(splitIndicator ? :splitting : :merging) $(k) $(j) $([(v,c) for (v,c) in counts])")
     end
     nothing
   end

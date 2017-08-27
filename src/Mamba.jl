@@ -255,12 +255,18 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
 
   end
 
-  function MakeAbstractModelState(val::VS,tune::Vector{Any}) where VS<:AbstractVariateVals{SVT} where SVT #TODO: Why  AbstractVariateVals and not Variate?
-    AbstractModelState{VS}(val,tune)
-    #new{DictVariateVals{SVT}}(val,tune)
-    #Necessary due to the following ridiculous error:
-    #MethodError: Cannot `convert` an object of type Mamba.AbstractModelState{Mamba.SymDictVariateVals{Float64}} to an object of type Mamba.AbstractModelState{Mamba.DictVariateVals{Float64}}
-  end
+    function MakeAbstractModelState(val::VS,tune::Vector{Any}) where VS<:DictVariateVals{SVT} where SVT #TODO: Why  AbstractVariateVals and not Variate?
+      AbstractModelState{DictVariateVals{SVT}}(val,tune)
+      #new{DictVariateVals{SVT}}(val,tune)
+      #Necessary due to the following ridiculous error:
+      #MethodError: Cannot `convert` an object of type Mamba.AbstractModelState{Mamba.SymDictVariateVals{Float64}} to an object of type Mamba.AbstractModelState{Mamba.DictVariateVals{Float64}}
+    end
+    function MakeAbstractModelState(val::VS,tune::Vector{Any}) where VS<:ArrayVariateVals{SVT} where SVT #TODO: Why  AbstractVariateVals and not Variate?
+      AbstractModelState{ArrayVariateVals{SVT}}(val,tune)
+      #new{DictVariateVals{SVT}}(val,tune)
+      #Necessary due to the following ridiculous error:
+      #MethodError: Cannot `convert` an object of type Mamba.AbstractModelState{Mamba.SymDictVariateVals{Float64}} to an object of type Mamba.AbstractModelState{Mamba.DictVariateVals{Float64}}
+    end
 
   type AbstractModel{StateType} #where StateType <: Variate
     nodes::Dict{Symbol, Any}
