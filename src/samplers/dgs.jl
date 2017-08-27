@@ -95,7 +95,7 @@ function DGS(params::ElementOrVector{Symbol}, returnLogp = false)
 
     logptot = 0
     println("using DGS at block $(block) for $(params)")
-    for key in params
+    for key in params #TODO: need to make this a closure, otherwise key will change before it's called
       node = model[key]
       if isnull(proposal)
         x = unlist(node)
@@ -110,7 +110,12 @@ function DGS(params::ElementOrVector{Symbol}, returnLogp = false)
                                     !isa(d,DirichletPInt) ? support(d)' : (
                                         sup==emptysup ? sup=(1:Int(max(x.value...)))' : sup
                                     )))
-        logp = sample!(v, mass; kargs...)
+        println("qqqq simmy $i $overSupport")
+        if length(kargs) > 0
+          logp = sample!(v, mass; kargs...)
+        else
+          logp = sample!(v, mass)
+        end
         x[i] = v[1]
         xAsInt[i] = Int(v[1])
         relist!(model, x, key)
@@ -121,11 +126,10 @@ function DGS(params::ElementOrVector{Symbol}, returnLogp = false)
                       i::Integer)
 
         value = v[1]
-
         x[i] = myvaltype(x)(value)
         xAsInt[i] = Int(value)
         relist!(model, x, key)
-        targetIndex = isnull(getTargetIndex) ? () : (getTargetIndex(i),) #optional parameter idiom, yuck
+
         if isa(d,DirichletPInt)
           if isnull(supportWeights)
             counts = countmap(x.value)
@@ -134,6 +138,7 @@ function DGS(params::ElementOrVector{Symbol}, returnLogp = false)
             mx = Int64(max(groups...))
             if ln < mx
               sort!(groups)
+              j = 0
               for j in 1:ln
                 if j < groups[j]
                   break
@@ -149,10 +154,11 @@ function DGS(params::ElementOrVector{Symbol}, returnLogp = false)
           end
         end
 
-        if isnull(targetIndex)
+        if true #isnull(getTargetIndex)
+
           return exp(logpdf(d, value) + logpdf(model, node.targets))
         else
-          return exp(logpdf(d, value) + logpdf(model, node.targets; index=targetIndex))
+          return exp(logpdf(d, value) + logpdf(model, node.targets; index=getTargetIndex(i)))
         end
       end
 
@@ -164,8 +170,8 @@ function DGS(params::ElementOrVector{Symbol}, returnLogp = false)
   if returnLogp
     return samplerfx #used directly as a substep for reversible jump
   else
-    function sfx(args...)
-      samplerfx(args...)
+    function sfx(model::AbstractModel, block::Integer)
+      samplerfx(model, block)
       nothing
     end
     return Sampler(params, sfx, DSTune{Function}())
@@ -193,12 +199,15 @@ function DGS_sub!(D::Array{UnivariateDistribution}, sim::Function,
 end
 
 function DGS_sub!(D::DirichletPInt, sim::Function,
-                  mass::Function, indices::Union{Vector{Int}, Void}=nothing)
+                  mass::Function, myindices::Union{Vector{Int}, Void}=nothing)
   logp = 0.
-  if indices==nothing
-    indices = 1:D.len
+  if isnull(myindices)
+    myindices2 = 1:D.len
+  else
+    myindices2 = myindices
   end
-  for i in indices
+  for i in myindices2
+
     logp += sim(i, D, v -> mass(D, v, i))
   end
   logp
@@ -232,7 +241,11 @@ function sample!(v::DGSVariate, mass::Function; donothing::Bool=false)
     probs[:] = 1 / n
   end
   if donothing
-    r = index(tune.support, v[1])
+    r = 1
+    while r<n && tune.support[:,r] != v
+      r+=1
+    end
+    println("qqqq sample $r $v $(tune.support)")
   else
     r = rand(Categorical(probs)) #TODO: wouldn't "sample" be faster here?
   end

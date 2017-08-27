@@ -100,7 +100,6 @@ function sample!(v::SliceMultivariate, logf::Function)
 
   x = (v.tune.width .* rand(n)) .+ lower
   while logf(x) < p0
-    println("qqqq slice x $(x) l $(lower) u $(upper) av $(asvec(v.value))")
 
     for i in 1:n
 

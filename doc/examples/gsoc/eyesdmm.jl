@@ -44,28 +44,26 @@ model = Model(
   ),
 
   mu = Stochelastic(1,
-    (mu0, sig0, T) ->
+    (mu0, sig0, T, G) ->
       begin
-        s = 1:Int(max(T.value...))
         UnivariateDistribution[
           begin
             Normal(mu0, sig0)
           end
-          for i in s
+          for i in 1:Int(G)
         ]
       end,
     false
   ),
 
   sig = Stochelastic(1,
-    (sigshape, sigscale, T) ->
+    (sigshape, sigscale, T, G) ->
       begin
-        s = 1:Int(max(T.value...))
         UnivariateDistribution[
           begin
             InverseGamma(sigshape, sigscale)
           end
-          for i in s
+          for i in 1:Int(G)
         ]
       end,
     false
@@ -73,6 +71,11 @@ model = Model(
 
   sigscale = Stochastic(
     (hypershape, hyperscale) -> InverseGamma(hypershape, hyperscale),
+    false
+  ),
+
+  G = Stochastic(
+    () -> DiscreteUniform(1,1e6), #who cares — never is checked
     false
   )
 
@@ -82,9 +85,13 @@ model = Model(
 ## Initial Values
 inits = [
   Dict(:y => eyes[:y], :T => repeat([1,2], outer=Int(eyes[:N]//2)),
-       :mu => [535.,540.], :sig => [10.,15.], :sigscale => eyes[:sigshape] * std(eyes[:y])),
+       :mu => [535.,540.], :sig => [10.,15.],
+       :sigscale => eyes[:sigshape] * std(eyes[:y]),
+       :G => 20.), #evil hack! Should be 2.
   Dict(:y => eyes[:y], :T => repeat([1,1,2,2], outer=Int(eyes[:N]//4)),
-       :mu => [550.,551.], :sig => [15.,25.], :sigscale => eyes[:sigshape] * std(eyes[:y]))
+       :mu => [550.,551.], :sig => [15.,25.],
+       :sigscale => eyes[:sigshape] * std(eyes[:y]),
+       :G => 20.) #evil hack! Should be 2.
 ]
 
 
@@ -94,7 +101,7 @@ scheme = [DGS(:T),
           Slice(:mu, 8.0),
           Slice(:sig, 8.0),
           Slice(:sigscale, 8.0),
-          RJS(:T, model)]
+          RJS(:T, model, :G)]
 setsamplers!(model, scheme)
 
 

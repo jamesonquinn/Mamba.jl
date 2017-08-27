@@ -107,16 +107,23 @@ function proposeMergeParams!(conditionalDist::Normal,
   w2 = weights[k]
   mu2 = params[condParamIndices[1]...,k]
   sig2 = params[condParamIndices[2]...,k]
+
   weights[k] = w0 = w1+w2
   weights[j] = 0
+
   mu0 = (mu1*w1 + mu2*w2)/w0
   params[condParamIndices[1]...,k] = mu0
+
   sig0 = sqrt(mu1*(sig1^2 + (mu1-mu0)^2) + mu2*(sig2^2 + (mu2-mu0)^2))
   params[condParamIndices[2]...,k] = sig0
-  u1 = (mu0-mu1)/(mu2-mu1) #should always be positive if w1 and w2 both are.
-  u2 = abs(mu2-mu0)/sig0*sqrt(w2/w1)
-  u3 = ((sig1/sig2)^2)*w1/w0/(1-u2^2)
+
+  u1 = w1/w0 #should always be positive if w1 and w2 both are.
+  evOverEvve = (sig1^2*w1 + sig2^2*w2)/(sig0^2*w0)
+  u2 = sqrt(1-evOverEvve) #u2 governs how much of the variance is external to both components combined — the V(E) part of E(V)+V(E)
+  u3 = ((sig1/sig0)^2)*u1/evOverEvve #u3 governs how the internal variance is broken down between the two
   println("qqqq w120 $(w1) $(w2) $(w0)")
+  println("qqqq mu120 $(mu1) $(mu2) $(mu0)")
+  println("qqqq sig120 $(sig1) $(sig2) $(sig0)")
   println("qqqq u123 $(u1) $(u2) $(u3)")
   ((u3 < 1) && (u3 > 0)) || throw(ErrorException("u3 not in (0,1)"))
   logAfac= (log(w0*abs(mu1-mu2)*sig1*sig2/(u2*(1-u2^2)*u3*(1-u3)*sig0)) #jacobian
@@ -134,12 +141,12 @@ end
 #   [s.distr for s in tnode.sources[1:end-2]]
 # end
 
-function RJS(param::Symbol, themodel::AbstractModel, splitprob=0.5) #TODO: allow use on hierarchical stuff; param::Tuple??
+function RJS(dpparam::Symbol, themodel::AbstractModel, groupNumParam::Symbol, splitprob=0.5) #TODO: allow use on hierarchical stuff; dpparam::Tuple??
 
   #figure out which target is the "bottom";
   #e.g., the Normally-distributed one, not the mean or sd thereof.
 
-  thenode = themodel[param]
+  thenode = themodel[dpparam]
   targets=Set{Symbol}(thenode.targets)
   allSourceParamsOfTargets=Set{Symbol}()
   for target in targets
@@ -149,24 +156,24 @@ function RJS(param::Symbol, themodel::AbstractModel, splitprob=0.5) #TODO: allow
   setdiff!(targets,allSourceParamsOfTargets)
   sourceParamsOfTargets=setdiff(Set{Symbol}(thenode.targets),targets)
 
-  assigner! = DGS(param; returnLogp = true) #must be declared outside function below or you get world problems
+  assigner! = DGS(dpparam, true) #must be declared outside function below or you get world problems
   checkAssign = (args...)->assigner!(args...; donothing = true)
 
   samplerfx = function(model::AbstractModel, block::Integer)
 
     #local node, x #TODO: does anything need to be local here?
-    node = model[param]
+    node = model[dpparam]
     (alpha,) = params(node.distr)
     cur = unlist(model)
     proposal = copy(cur)
     logA = log((1. - splitprob) / splitprob) #base acceptance for split; use reciprocal for merge
-    logA -= logpdf(model,block)
+    #logA -= logpdf(model,block) #double-counting
 
     #hyperParamDists
     #hyperParamDistses = [hyperdists(model,target) for target in node.targets]
 
     #counts of groups
-    counts = countmap(cur[param].value)
+    counts = countmap(cur[dpparam].value)
     groups = [Int64(g) for g in keys(counts)]
     ln = length(groups)
     mx = Int64(max(groups...))
@@ -180,7 +187,6 @@ function RJS(param::Symbol, themodel::AbstractModel, splitprob=0.5) #TODO: allow
       sumweights += newweights[groups[i]] = rand(Gamma(counts[groups[i]]))
     end
     oldweights = ProbabilityWeights(newweights/sumweights)
-    #TODO: do I need to divide by sum and make a ProbabilityWeights? I don't think I ever actually use that, could save the time.
 
     splitIndicator = rand()<splitprob
 
@@ -192,8 +198,15 @@ function RJS(param::Symbol, themodel::AbstractModel, splitprob=0.5) #TODO: allow
       #where to put new group
       if ln == mx #no gaps
         j = mx + 1 #index of new proposed group, if needed
-        for target in sourceParamsOfTargets #all params
-          proposal[target,j] = NaN #make room
+        for aparam in sourceParamsOfTargets #all params
+          println("qqqq making room $aparam $j")
+          println(" $(typeof(proposal[:sigscale]))")
+          proposal[aparam,j] = NaN #make room
+          proposal[groupNumParam,1] = Float64(j)
+          cur[groupNumParam,1] = Float64(j)
+          #relist!(model,cur) #needed so that the distr below works #TODO: fix this; for now, just short-circuiting
+          #cur[aparam,j] = rand(model[aparam].distr[j]) #thus, there must always be 1 extra copy of the distribution
+          cur[aparam,j] = rand(model[aparam].distr[1]) #TODO: fix; "1" is evil hack, though valid for iid.
         end
       else
         sort!(groups)
@@ -214,31 +227,33 @@ function RJS(param::Symbol, themodel::AbstractModel, splitprob=0.5) #TODO: allow
                 k, #index of existing group
                 j, #index of new proposed group
                 params(node.distr)[1],
-                proposal, [(param,) for param in musigfrom],
+                proposal, [(aparam,) for aparam in musigfrom],
                 newweights
                 )#TODO: tune
       end
 
-      #assign elems to newly-specified groups and adjust acceptance prob
-      itemsToAssign = [i for i in 1:length(cur[param]) if cur[param,i]==k]
+      itemsToAssign = [i for i in 1:length(cur[dpparam].value) if cur[dpparam,i]==k]
+
+      relist!(model, cur) #parameter space may have expanded
       logA -= checkAssign(model,block,cur,
-          [k,j], oldweights,
+          [k], oldweights,
           itemsToAssign,
           i -> i)
-      logA += assigner(model,block,proposal,
+      #account for priors/hyperparameters on params
+      for aparam in sourceParamsOfTargets
+        logA -= logpdf(model, [aparam])
+      end
+
+      relist!(model, proposal)
+      #assign elems to newly-specified groups and adjust acceptance prob
+      logA += assigner!(model,block,proposal,
           [k,j], newweights,
           itemsToAssign,
           i -> i)
 
       #account for priors/hyperparameters on params
-      for param in sourceParamsOfTargets
-        relist!(model, cur)
-        logA -= logpdf(model, param)
-
-        relist!(model, proposal)
-        logA += logpdf(model, param)
-
-
+      for aparam in sourceParamsOfTargets
+        logA += logpdf(model, [aparam])
       end
 
     else
@@ -259,56 +274,53 @@ function RJS(param::Symbol, themodel::AbstractModel, splitprob=0.5) #TODO: allow
           tnode = model[target]
           musigfrom = tnode.sources[1:end-2]
           logA += proposeMergeParams!(tnode.distr[k],
-                  k, #index of existing group
-                  j, #index of new proposed group
+                  k, #index of remaining group
+                  j, #index of disappearing group
                   params(node.distr)[1],
-                  proposal, [(param,) for param in musigfrom],
+                  proposal, [(aparam,) for aparam in musigfrom],
                   newweights) #TODO: tune
         end
 
         #move elems to newly-specified group and adjust acceptance prob
-        itemsToAssign = [i for i in 1:length([cur[param]]) if cur[param,i] in [j,k]]
+        itemsToAssign = [i for i in 1:length([cur[dpparam]]) if cur[dpparam,i] in [j,k]]
         for i in itemsToAssign
-          proposal[param,i] = Float64(k)
+          proposal[dpparam,i] = Float64(k)
         end
+
+        relist!(model, cur) #redundant??
         logA += checkAssign(model,block,cur,
             [k,j], oldweights,
             itemsToAssign,
             i -> i)
-        logA -= checkAssign(model,block,proposal,
-              [k,j], newweights,
-              itemsToAssign,
-              i -> i)
-
-
-        for param in sourceParamsOfTargets
+        for aparam in sourceParamsOfTargets
           #account for priors/hyperparameters on params
-          relist!(model, cur)
-          logA -= logpdf(model, param)
-
-          relist!(model, proposal)
-          logA += logpdf(model, param)
-
+          logA -= logpdf(model, [aparam])
         end
+
 
         relist!(model, proposal)
-        logA += logpdf(model,block)
-
-        if !splitIndicator
-          logA = -logA
+        logA -= checkAssign(model,block,proposal,
+              [k], newweights,
+              itemsToAssign,
+              i -> i)
+        for aparam in sourceParamsOfTargets
+          #account for priors/hyperparameters on params
+          logA += logpdf(model, [aparam])
         end
 
-        acceptIndicator = rand() < exp(logA)
-        if !acceptIndicator
-          relist!(model, cur)
-        end
+        #relist!(model, proposal)
+        #logA += logpdf(model,block) #double-counting, after above
 
-        acceptIndicator
+        logA = -logA #change from split acceptance prob to merge acceptance prob
       end
+    end
+    acceptIndicator = rand() < exp(logA)
+    if !acceptIndicator
+      relist!(model, cur)
     end
     nothing
   end
-  Sampler([param], samplerfx, DSTune{Function}())
+  Sampler([dpparam], samplerfx, DSTune{Function}())
 end
 
 
