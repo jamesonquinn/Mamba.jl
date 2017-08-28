@@ -69,7 +69,8 @@ function Base.setindex!(m::AbstractModel, value::DictVariateVals, nodekey::Symbo
   end
 end
 
-function Base.setindex!(m::AbstractModel, values::Union{Dict,DictVariateVals}, nodekeys::Vector{Symbol}) where SVT
+function Base.setindex!(m::AbstractModel, values::DictVariateVals,
+      nodekeys::Vector{Symbol})
   if length(nodekeys) > 1
     for key in nodekeys
       m[key] = values[key]
@@ -80,7 +81,16 @@ function Base.setindex!(m::AbstractModel, values::Union{Dict,DictVariateVals}, n
 
 end
 
+
+function Base.setindex!(m::AbstractModel, values::Dict,
+      nodekeys::Vector{Symbol})
+  for key in nodekeys
+    m[key] = values[key]
+  end
+end
+
 function Base.setindex!(m::AbstractModel, value, nodekeys::Vector{Symbol})
+  println("qqqq setindex $(typeof(value))")
   length(nodekeys) == 1 || throw(BoundsError())
   m[first(nodekeys)] = value
 end

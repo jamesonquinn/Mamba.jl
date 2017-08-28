@@ -262,7 +262,7 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
       #MethodError: Cannot `convert` an object of type Mamba.AbstractModelState{Mamba.SymDictVariateVals{Float64}} to an object of type Mamba.AbstractModelState{Mamba.DictVariateVals{Float64}}
     end
     function MakeAbstractModelState(val::VS,tune::Vector{Any}) where VS<:ArrayVariateVals{SVT} where SVT #TODO: Why  AbstractVariateVals and not Variate?
-      AbstractModelState{ArrayVariateVals{SVT}}(val,tune)
+      AbstractModelState{ArrayVariateVals{SVT,1}}(val,tune)
       #new{DictVariateVals{SVT}}(val,tune)
       #Necessary due to the following ridiculous error:
       #MethodError: Cannot `convert` an object of type Mamba.AbstractModelState{Mamba.SymDictVariateVals{Float64}} to an object of type Mamba.AbstractModelState{Mamba.DictVariateVals{Float64}}
@@ -349,16 +349,16 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
 
   include("output/chains.jl")
   include("output/chainsummary.jl")
-  # include("output/fileio.jl")
-  # include("output/gelmandiag.jl")
-  # include("output/gewekediag.jl")
-  # include("output/heideldiag.jl")
-  # include("output/mcse.jl")
-   include("output/modelchains.jl")
-   include("output/modelstats.jl")
-  # include("output/rafterydiag.jl")
-  # include("output/stats.jl")
-  # include("output/plot.jl")
+  include("output/fileio.jl")
+  include("output/gelmandiag.jl")
+  include("output/gewekediag.jl")
+  include("output/heideldiag.jl")
+  include("output/mcse.jl")
+  include("output/modelchains.jl")
+  include("output/modelstats.jl")
+  include("output/rafterydiag.jl")
+  include("output/stats.jl")
+  include("output/plot.jl")
 
   include("samplers/sampler.jl")
 

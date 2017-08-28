@@ -1,0 +1,13 @@
+MethodError: Cannot `convert` an object of type Array{Mamba.AbstractModelState{Array{Float64,1}},1} to an object of type Array{T,1} where T<:Mamba.AbstractModelState{Mamba.DictVariateVals{Float64}}
+This may have arisen from a call to the constructor Array{T,1} where T<:Mamba.AbstractModelState{Mamba.DictVariateVals{Float64}}(...),
+since type constructors fall back to convert methods.
+Mamba.AbstractModel{Mamba.DictVariateVals{Float64}}(::Dict{Symbol,Any}, ::Array{Mamba.Sampler,1}, ::Array{Mamba.AbstractModelState{Array{Float64,1}},1}, ::Int64, ::Int64, ::Bool, ::Bool) at Mamba.jl:266
+#Model#50(::Int64, ::Int64, ::Array{Mamba.Sampler,1}, ::Array{Any,1}, ::Type{T} where T) at model.jl:19
+(::Core.#kw#Type)(::Array{Any,1}, ::Type{Mamba.AbstractModel{Array{SVT,1}} where SVT}) at <missing>:0
+include_string(::String, ::String) at loading.jl:515
+eval(::Module, ::Any) at boot.jl:235
+(::Atom.##61#64)() at eval.jl:102
+withpath(::Atom.##61#64, ::Void) at utils.jl:30
+withpath(::Function, ::Void) at eval.jl:38
+macro expansion at eval.jl:101 [inlined]
+(::Atom.##60#63{Dict{String,Any}})() at task.jl:80

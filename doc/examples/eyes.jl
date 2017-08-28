@@ -79,5 +79,7 @@ setsamplers!(model, scheme)
 
 
 ## MCMC Simulations
-sim = mcmc(model, eyes, inits, 1000, burnin=250, thin=2, chains=2)
-#describe(sim)
+sim = mcmc(model, eyes, inits, 400, burnin=250, thin=2, chains=2)
+
+@time sim = mcmc(model, eyes, inits, 1000, burnin=250, thin=2, chains=2)
+describe(sim)
