@@ -8,6 +8,7 @@ module Mamba
          valtype, getindex, get, length, keys, setindex!, copy,
          start, next, done, ndims, convert, promote_rule, size, fill!,
          cat, vcat, hcat,
+         display,
          +, -, *, /, ^, |
   import Base.LinAlg: Cholesky
   import Calculus: gradient

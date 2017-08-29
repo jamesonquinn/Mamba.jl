@@ -92,14 +92,17 @@ length(d::DirichletPInt) = d.len
 
 function _logpdfcounts(d::DirichletPInt, c::Vector{Int64},l::Int64)
     a = d.alpha
-    fullfac = -log(l+a)
-    s = fullfac * l
+    n = d.len
+    g = sum(map(x->x>0, c))
+
+    p = lgamma(a)+g*log(a)-lgamma(a+n)
+
     for i in 1:length(c)
         if c[i] != 0
-            @inbounds s += log(c[i] - 1 + a) * c[i]
+            @inbounds p += lgamma(c[i])
         end
     end
-    return s
+    return p
 end
 
 function logpdf(d::DirichletPInt, x::AbstractVector{Int64})

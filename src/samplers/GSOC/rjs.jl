@@ -114,7 +114,8 @@ function proposeMergeParams!(conditionalDist::Normal,
   mu0 = (mu1*w1 + mu2*w2)/w0
   params[condParamIndices[1]...,k] = mu0
 
-  sig0 = sqrt(mu1*(sig1^2 + (mu1-mu0)^2) + mu2*(sig2^2 + (mu2-mu0)^2))
+
+  sig0 = sqrt((w1*(sig1^2 + (mu1-mu0)^2) + w2*(sig2^2 + (mu2-mu0)^2))/w0)
   params[condParamIndices[2]...,k] = sig0
 
   u1 = w1/w0 #should always be positive if w1 and w2 both are.
@@ -151,6 +152,7 @@ function RJS(dpparam::Symbol, themodel::AbstractModel, groupNumParam::Symbol, sp
   end
   setdiff!(targets,allSourceParamsOfTargets)
   sourceParamsOfTargets=setdiff(Set{Symbol}(thenode.targets),targets)
+  allRelevantParams=collect(chain([dpparam],targets,sourceParamsOfTargets))
 
   assigner! = DGS(dpparam, true) #must be declared outside function below or you get world problems
   checkAssign = (args...)->assigner!(args...; donothing = true)
@@ -199,8 +201,10 @@ function RJS(dpparam::Symbol, themodel::AbstractModel, groupNumParam::Symbol, sp
           proposal[groupNumParam,1] = Float64(j)
           cur[groupNumParam,1] = Float64(j)
           #relist!(model,cur) #needed so that the distr below works #TODO: fix this; for now, just short-circuiting
-          #cur[aparam,j] = rand(model[aparam].distr[j]) #thus, there must always be 1 extra copy of the distribution
-          cur[aparam,j] = rand(model[aparam].distr[1]) #TODO: fix; "1" is evil hack, though valid for iid.
+          model[groupNumParam].value = j #update!(model[groupNumParam],model)
+          aparmnode = update!(model[aparam],model)
+          cur[aparam,j] = rand(aparmnode.distr[j]) #thus, there must always be 1 extra copy of the distribution
+          #cur[aparam,j] = rand(model[aparam].distr[1]) #TODO: fix; "1" is evil hack, though valid for iid.
         end
       else
         sort!(groups)
@@ -227,6 +231,7 @@ function RJS(dpparam::Symbol, themodel::AbstractModel, groupNumParam::Symbol, sp
       itemsToAssign = [i for i in 1:length(cur[dpparam].value) if cur[dpparam,i]==k]
 
       relist!(model, cur) #parameter space may have expanded
+      update!(model, allRelevantParams)
       logA -= checkAssign(model,block,cur,
           [k], oldweights,
           itemsToAssign,
@@ -237,6 +242,7 @@ function RJS(dpparam::Symbol, themodel::AbstractModel, groupNumParam::Symbol, sp
       end
 
       relist!(model, proposal)
+      update!(model, allRelevantParams)
       #assign elems to newly-specified groups and adjust acceptance prob
       logA += assigner!(model,block,proposal,
           [k,j], newweights,
@@ -259,7 +265,7 @@ function RJS(dpparam::Symbol, themodel::AbstractModel, groupNumParam::Symbol, sp
       if length(mergeables) > 0
         j = rand(mergeables)
 
-        #propose individual splits
+        #propose individual merged params
 
         for target in targets
           tnode = model[target]
@@ -273,12 +279,13 @@ function RJS(dpparam::Symbol, themodel::AbstractModel, groupNumParam::Symbol, sp
         end
 
         #move elems to newly-specified group and adjust acceptance prob
-        itemsToAssign = [i for i in 1:length([cur[dpparam]]) if cur[dpparam,i] in [j,k]]
+        itemsToAssign = [i for i in 1:length(cur[dpparam].value) if cur[dpparam,i] in [j,k]]
         for i in itemsToAssign
           proposal[dpparam,i] = Float64(k)
         end
 
         relist!(model, cur) #redundant??
+        update!(model, allRelevantParams)
         logA += checkAssign(model,block,cur,
             [k,j], oldweights,
             itemsToAssign,
@@ -290,6 +297,7 @@ function RJS(dpparam::Symbol, themodel::AbstractModel, groupNumParam::Symbol, sp
 
 
         relist!(model, proposal)
+        update!(model, allRelevantParams)
         logA -= checkAssign(model,block,proposal,
               [k], newweights,
               itemsToAssign,
@@ -311,7 +319,11 @@ function RJS(dpparam::Symbol, themodel::AbstractModel, groupNumParam::Symbol, sp
     end
 
     if true #TODO: replace with debug conditional
-      #println("qqqq $(acceptIndicator ? :YES : :NOT) $(splitIndicator ? :splitting : :merging) $(k) $(j) $([(v,c) for (v,c) in counts])")
+      if length(counts) > 1
+        println("qqqq2 $(acceptIndicator ? :YES : :NOT) $(splitIndicator ? :splitting : :merging) $(k) $(j) $([(v,c) for (v,c) in counts])")
+      else
+        println("not merging; 1 group")
+      end
     end
     nothing
   end

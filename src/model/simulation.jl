@@ -125,8 +125,7 @@ end
 function unlist(m::AbstractModel, monitoronly::Bool)
   f = function(key)
     node = m[key]
-    lvalue = unlist(node)
-    monitoronly ? lvalue[node.monitor] : lvalue
+    r = unlist(node; monitoronly=monitoronly)
   end
   vcat(map(f, keys(m, :dependent))...)
 end
@@ -134,8 +133,7 @@ end
 function unlist(m::ElasticModel, monitoronly::Bool)
   f = function(key)
     node = m[key]
-    lvalue = unlist(node)
-    r = monitoronly ? lvalue[node.monitor] : lvalue
+    r = unlist(node; monitoronly=monitoronly)
     VecDictVariateVals{myvaltype(m)}(r)
   end
   SymDictVariateVals{myvaltype(m)}(k => f(k) for k in keys(m, :dependent))

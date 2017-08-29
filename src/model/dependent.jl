@@ -268,22 +268,27 @@ end
 
 getindex(X::NestedDictVariateVals,i::Tuple) = getindex(X,i...)
 
-function ensureIndexReady!(X::NestedDictVariateVals,i)
+function ensureIndexReady!(X::NestedDictVariateVals{SVT},i,subval::Bool=false) where SVT
   #generically, do nothing
+  if subval
+    if !haskey(X.value,i)
+      X.value[i] = VecDictVariateVals{SVT}()
+    end
+  end
 end
 
-function ensureIndexReady!(X::VecDictVariateVals,i::Integer)
+function ensureIndexReady!(X::VecDictVariateVals{SVT},i::Integer,subval::Bool=false) where SVT
   l = length(X.value)
   if l<i
     append!(X.value,fill(NaN,i-l))
+    if subval
+      X.value[i] = VecDictVariateVals{SVT}()
+    end
   end
 end
 
 function setindex!(X::NestedDictVariateVals{SVT},v,i::Union{Symbol, Int64}...) where SVT
-  ensureIndexReady!(X,i[1])
-  if !haskey(X.value,i[1])
-    X.value[i[1]] = VecDictVariateVals{typeof(v)}()
-  end
+  ensureIndexReady!(X,i[1],true)
   X.value[i[1]][i[2:end]...] = v
 end
 
@@ -451,8 +456,10 @@ end
 
 #################### Distribution Methods ####################
 
-function unlist(s::AbstractFixedStochastic, transform::Bool=false)
-  unlist(s, s.value, transform)
+function unlist(s::AbstractFixedStochastic, transform::Bool=false; monitoronly=false)
+  lvalue = unlist(s, s.value, transform)
+
+  monitoronly ? lvalue[s.monitor] : lvalue
 end
 
 function unlist(s::AbstractFixedStochastic, x::Real, transform::Bool=false)

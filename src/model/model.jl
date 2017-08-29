@@ -90,7 +90,6 @@ function Base.setindex!(m::AbstractModel, values::Dict,
 end
 
 function Base.setindex!(m::AbstractModel, value, nodekeys::Vector{Symbol})
-  println("qqqq setindex $(typeof(value))")
   length(nodekeys) == 1 || throw(BoundsError())
   m[first(nodekeys)] = value
 end

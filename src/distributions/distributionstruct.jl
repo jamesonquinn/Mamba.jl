@@ -162,8 +162,10 @@ end
 function logpdf_sub(D::Array{UnivariateDistribution}, X::AbstractArray,
                     transform::Bool)
   lp = 0.0
-  for i in 1:length(X)
-    lp += logpdf_sub(D[i], X[i], transform)
+  for i in 1:min(length(X),length(D)) #...a little bit of a hack, but basically forgivable.
+  #Deals with the case where number of components has shrunk.
+
+    lp += logpdf_sub(D[i], X[i], transform) #could @inbounds here?
   end
   lp
 end
