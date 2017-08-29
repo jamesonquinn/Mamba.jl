@@ -485,6 +485,9 @@ const AbstractFixedStochastic = Union{ScalarStochastic, ArrayStochastic}
   export
     get
 
+  export
+    AbstractDictChainVal #for redefining plot functions in the repl
+
 
   #################### Deprecated ####################
 

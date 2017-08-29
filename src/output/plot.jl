@@ -228,7 +228,7 @@ end
 
 
 
-function traceplotVar(c::Mamba.ModelChains{Mamba.AbstractDictChainVal{Float64,2}}; legend::Bool=false, na...)
+function traceplotVar(c::ModelChains{AbstractDictChainVal{Float64,2}}; legend::Bool=false, na...)
   nrows, nchains = size(c.value)
   vars = collect(keys(c.value.value[1,1].value))
   plots = Array{Plot}(length(vars))
@@ -245,13 +245,15 @@ function traceplotVar(c::Mamba.ModelChains{Mamba.AbstractDictChainVal{Float64,2}
     else
       ys=[[e for e in c.value.value[row,chain].value[curvar].value] for chain in 1:nchains for row in 1:nrows]
       y = Float64[]
-      for (l, gs) in zip(ys,gsets); for e in l[gs]; push!(y,e); end end
+      #println("$ys  ;  $gsets")
+      #println("$(length(zip(ys,gsets)))")
+      for (l, gs) in zip(ys,gsets); try; for e in l[gs]; push!(y,e); end end end
       xs=repeat(collect(c.range), outer=[nchains])
       colors=repeat(c.chains, inner=[length(c.range)])
       x = Int[]
-      for (l, attr, gs) in zip(ys,xs,gsets); for e in l[gs]; push!(x,attr); end end
+      for (l, attr, gs) in zip(ys,xs,gsets); try; for e in l[gs]; push!(x,attr); end end end
       color = Int[]
-      for (l, attr, gs) in zip(ys,xs,gsets); for e in l[gs]; push!(color,attr); end end
+      for (l, attr, gs) in zip(ys,colors,gsets); try; for e in l[gs]; push!(color,attr); end end end
       geom = Geom.point()
     end
     plots[i] = plot(y=y, #qq

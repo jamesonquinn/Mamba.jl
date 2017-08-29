@@ -17,7 +17,6 @@ type RJTune{F<:DSForm} <: SamplerTune
     new(Nullable{Vector{Float64}}(), support)
 end
 
-
 const RJSVariate = DictSamplerVariate{DSTune{Vector{Float64}}}
 
 validate(v::RJSVariate) = validate(v, v.tune.support)
@@ -219,13 +218,15 @@ function RJS(dpparam::Symbol, themodel::AbstractModel, groupNumParam::Symbol, sp
       for target in targets
         tnode = model[target]
         musigfrom = tnode.sources[1:end-2]
-        logA += proposeSplitParams!(tnode.distr[k],
+        assignProb = proposeSplitParams!(tnode.distr[k], #the higher the probability that we'd propose this split, the lower prob we should accept.
                 k, #index of existing group
                 j, #index of new proposed group
                 params(node.distr)[1],
                 proposal, [(aparam,) for aparam in musigfrom],
                 newweights
                 )#TODO: tune
+        println("qqqq split assignProb $assignProb")
+        #logA -= assignProb
       end
 
       itemsToAssign = [i for i in 1:length(cur[dpparam].value) if cur[dpparam,i]==k]
@@ -270,12 +271,14 @@ function RJS(dpparam::Symbol, themodel::AbstractModel, groupNumParam::Symbol, sp
         for target in targets
           tnode = model[target]
           musigfrom = tnode.sources[1:end-2]
-          logA += proposeMergeParams!(tnode.distr[k],
+          assignProb = proposeMergeParams!(tnode.distr[k], #the higher the probability that we'd propose this split, the higher prob we should accept the merge.
                   k, #index of remaining group
                   j, #index of disappearing group
                   params(node.distr)[1],
                   proposal, [(aparam,) for aparam in musigfrom],
                   newweights) #TODO: tune
+          println("qqqq merge assignProb $assignProb")
+          #logA -= assignProb
         end
 
         #move elems to newly-specified group and adjust acceptance prob
@@ -319,7 +322,7 @@ function RJS(dpparam::Symbol, themodel::AbstractModel, groupNumParam::Symbol, sp
     end
 
     if true #TODO: replace with debug conditional
-      if length(counts) > 1
+      if length(counts) > 1 || splitIndicator
         println("qqqq2 $(acceptIndicator ? :YES : :NOT) $(splitIndicator ? :splitting : :merging) $(k) $(j) $([(v,c) for (v,c) in counts])")
       else
         println("not merging; 1 group")

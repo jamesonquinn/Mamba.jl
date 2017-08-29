@@ -117,10 +117,11 @@ function DGS(params::ElementOrVector{Symbol}, returnLogp = false)
         x[i] = v[1]
         xAsInt[i] = Int(v[1])
         relist!(model, x, key)
+        logp < 0 || println( "sim logp $(logp)")
         logp
       end
 
-      mass = function(d::DGSUnivariateDistribution, v::AbstractVector, #p(x_i=v)
+      lmass = function(d::DGSUnivariateDistribution, v::AbstractVector, #p(x_i=v)
                       i::Integer)
 
         value = v[1]
@@ -155,15 +156,18 @@ function DGS(params::ElementOrVector{Symbol}, returnLogp = false)
 
         if true #isnull(getTargetIndex)
 
-          return exp(logpdf(d, value) + logpdf(model, node.targets))
+          return logpdf(d, value) + logpdf(model, node.targets)
         else
-          return exp(logpdf(d, value) + logpdf(model, node.targets; index=getTargetIndex(i)))
+          return logpdf(d, value) + logpdf(model, node.targets; index=getTargetIndex(i))
         end
       end
 
       indices = isnull(overIndices) ? () : (overIndices,) #this is how you make arguments optional when passing them on... ugly idiom
-      logptot += DGS_sub!(node.distr, sim, mass, indices...)
+      logptot += DGS_sub!(node.distr, sim, lmass, indices...)
     end
+
+    #logptot < 0 ||
+    println( "samplerfx logp $(logptot)")
     logptot
   end
   if returnLogp
@@ -194,6 +198,7 @@ function DGS_sub!(D::Array{UnivariateDistribution}, sim::Function,
     d = D[i]
     logp += sim(i, d, v -> mass(d, v, i))
   end
+  lp < 0 || println( "ds1 lp $(logp)")
   logp
 end
 
@@ -208,6 +213,7 @@ function DGS_sub!(D::DirichletPInt, sim::Function,
   for i in myindices2
     logp += sim(i, D, v -> mass(D, v, i))
   end
+  lp < 0 ||println( "ds2 lp $(logp)")
   logp
 end
 
@@ -226,13 +232,11 @@ Sample just one value; store it in v; return log probability that it would be so
 function sample!(v::DGSVariate, mass::Function; donothing::Bool=false)
   tune = v.tune
   n = size(tune.support, 2)
-  probs = Vector{Float64}(n)
   psum = 0.0
-  for i in 1:n
-    value = mass(tune.support[:, i])
-    probs[i] = value
-    psum += value
-  end
+  values = [mass(tune.support[:, i]) for i in 1:n]
+  values -= max(values...)
+  probs = [exp(value) for value in values]
+  psum = sum(probs)
   if psum > 0
     probs /= psum
   else
@@ -247,7 +251,8 @@ function sample!(v::DGSVariate, mass::Function; donothing::Bool=false)
     r = rand(Categorical(probs)) #TODO: wouldn't "sample" be faster here?
   end
   v[:] = tune.support[:, r]
-  log(probs[r])
+  lp = log(probs[r])
+  lp < -100 ? -100 : lp #suppress -inf
 end
 
 
