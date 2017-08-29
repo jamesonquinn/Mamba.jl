@@ -198,7 +198,7 @@ function DGS_sub!(D::Array{UnivariateDistribution}, sim::Function,
     d = D[i]
     logp += sim(i, d, v -> mass(d, v, i))
   end
-  lp < 0 || println( "ds1 lp $(logp)")
+  logp < 0 || println( "ds1 logp $(logp)")
   logp
 end
 
@@ -213,7 +213,7 @@ function DGS_sub!(D::DirichletPInt, sim::Function,
   for i in myindices2
     logp += sim(i, D, v -> mass(D, v, i))
   end
-  lp < 0 ||println( "ds2 lp $(logp)")
+  logp < 0 ||println( "ds2 logp $(logp)")
   logp
 end
 
