@@ -120,13 +120,14 @@ function DGS(params::ElementOrVector{Symbol}, returnLogp = false)
         logp
       end
 
-      mass = function(d::DGSUnivariateDistribution, v::AbstractVector,
+      mass = function(d::DGSUnivariateDistribution, v::AbstractVector, #p(x_i=v)
                       i::Integer)
 
         value = v[1]
         x[i] = myvaltype(x)(value)
         xAsInt[i] = Int(value)
         relist!(model, x, key)
+        update!(model, [key])
 
         if isa(d,DirichletPInt)
           if isnull(supportWeights)

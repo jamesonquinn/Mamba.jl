@@ -462,6 +462,13 @@ function unlist(s::AbstractFixedStochastic, transform::Bool=false; monitoronly=f
   monitoronly ? lvalue[s.monitor] : lvalue
 end
 
+
+function unlist(s::AbstractElasticDependent, transform::Bool=false; monitoronly=false)
+  lvalue = unlist(s, s.value, transform)
+
+  monitoronly ? lvalue : lvalue #Do you want spam, or spam? Monitor makes no sense for elastic.
+end
+
 function unlist(s::AbstractFixedStochastic, x::Real, transform::Bool=false)
   unlist(s, [x], transform)
 end

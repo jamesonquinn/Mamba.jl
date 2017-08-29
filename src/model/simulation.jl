@@ -125,6 +125,7 @@ end
 function unlist(m::AbstractModel, monitoronly::Bool)
   f = function(key)
     node = m[key]
+    println("qqqq ", @which unlist(node))
     r = unlist(node; monitoronly=monitoronly)
   end
   vcat(map(f, keys(m, :dependent))...)
