@@ -218,40 +218,39 @@ function RJS(dpparam::Symbol, themodel::AbstractModel, groupNumParam::Symbol, sp
       for target in targets
         tnode = model[target]
         musigfrom = tnode.sources[1:end-2]
-        assignProb = proposeSplitParams!(tnode.distr[k], #the higher the probability that we'd propose this split, the lower prob we should accept.
+        logA += proposeSplitParams!(tnode.distr[k],
                 k, #index of existing group
                 j, #index of new proposed group
                 params(node.distr)[1],
                 proposal, [(aparam,) for aparam in musigfrom],
                 newweights
                 )#TODO: tune
-        println("qqqq split assignProb $assignProb")
-        #logA -= assignProb
       end
 
       itemsToAssign = [i for i in 1:length(cur[dpparam].value) if cur[dpparam,i]==k]
 
       relist!(model, cur) #parameter space may have expanded
       update!(model, allRelevantParams)
-      logA -= checkAssign(model,block,cur,
-          [k], oldweights,
-          itemsToAssign,
-          i -> i)
+      # logA += checkAssign(model,block,cur,
+      #     [k], oldweights,
+      #     itemsToAssign,
+      #     i -> i)
+      # Above factor always log(1)
       #account for priors/hyperparameters on params
-      for aparam in sourceParamsOfTargets
+      for aparam in allRelevantParams
         logA -= logpdf(model, [aparam])
       end
 
       relist!(model, proposal)
       update!(model, allRelevantParams)
       #assign elems to newly-specified groups and adjust acceptance prob
-      logA += assigner!(model,block,proposal,
+      logA -= assigner!(model,block,proposal, #the higher the probability that we'd propose this split, the lower prob we should accept.
           [k,j], newweights,
           itemsToAssign,
           i -> i)
 
       #account for priors/hyperparameters on params
-      for aparam in sourceParamsOfTargets
+      for aparam in allRelevantParams
         logA += logpdf(model, [aparam])
       end
 
@@ -271,14 +270,12 @@ function RJS(dpparam::Symbol, themodel::AbstractModel, groupNumParam::Symbol, sp
         for target in targets
           tnode = model[target]
           musigfrom = tnode.sources[1:end-2]
-          assignProb = proposeMergeParams!(tnode.distr[k], #the higher the probability that we'd propose this split, the higher prob we should accept the merge.
+          logA += proposeMergeParams!(tnode.distr[k],
                   k, #index of remaining group
                   j, #index of disappearing group
                   params(node.distr)[1],
                   proposal, [(aparam,) for aparam in musigfrom],
                   newweights) #TODO: tune
-          println("qqqq merge assignProb $assignProb")
-          #logA -= assignProb
         end
 
         #move elems to newly-specified group and adjust acceptance prob
@@ -289,25 +286,26 @@ function RJS(dpparam::Symbol, themodel::AbstractModel, groupNumParam::Symbol, sp
 
         relist!(model, cur) #redundant??
         update!(model, allRelevantParams)
-        logA += checkAssign(model,block,cur,
+        logA -= checkAssign(model,block,cur,
             [k,j], oldweights,
             itemsToAssign,
-            i -> i)
-        for aparam in sourceParamsOfTargets
+            i -> i)#the higher the probability that we'd propose this split, the higher prob we should accept the merge.
+        for aparam in allRelevantParams
           #account for priors/hyperparameters on params
-          logA -= logpdf(model, [aparam])
+          logA += logpdf(model, [aparam])
         end
 
 
         relist!(model, proposal)
         update!(model, allRelevantParams)
-        logA -= checkAssign(model,block,proposal,
-              [k], newweights,
-              itemsToAssign,
-              i -> i)
-        for aparam in sourceParamsOfTargets
+        # logA += checkAssign(model,block,proposal,
+        #       [k], newweights,
+        #       itemsToAssign,
+        #       i -> i)
+        # Above factor always log(1)
+        for aparam in allRelevantParams
           #account for priors/hyperparameters on params
-          logA += logpdf(model, [aparam])
+          logA -= logpdf(model, [aparam])
         end
 
         #relist!(model, proposal)

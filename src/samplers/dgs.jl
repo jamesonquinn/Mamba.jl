@@ -117,7 +117,7 @@ function DGS(params::ElementOrVector{Symbol}, returnLogp = false)
         x[i] = v[1]
         xAsInt[i] = Int(v[1])
         relist!(model, x, key)
-        logp < 0 || println( "sim logp $(logp)")
+        logp <= 0 || println( "sim logp $(logp)")
         logp
       end
 
@@ -166,7 +166,7 @@ function DGS(params::ElementOrVector{Symbol}, returnLogp = false)
       logptot += DGS_sub!(node.distr, sim, lmass, indices...)
     end
 
-    #logptot < 0 ||
+    #logptot <= 0 ||
     println( "samplerfx logp $(logptot)")
     logptot
   end
@@ -198,7 +198,7 @@ function DGS_sub!(D::Array{UnivariateDistribution}, sim::Function,
     d = D[i]
     logp += sim(i, d, v -> mass(d, v, i))
   end
-  logp < 0 || println( "ds1 logp $(logp)")
+  logp <= 0 || println( "ds1 logp $(logp)")
   logp
 end
 
@@ -213,7 +213,7 @@ function DGS_sub!(D::DirichletPInt, sim::Function,
   for i in myindices2
     logp += sim(i, D, v -> mass(D, v, i))
   end
-  logp < 0 ||println( "ds2 logp $(logp)")
+  logp <= 0 ||println( "ds2 logp $(logp)")
   logp
 end
 
