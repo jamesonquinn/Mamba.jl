@@ -99,7 +99,7 @@ function DGS(params::ElementOrVector{Symbol}, returnLogp = false)
       if isnull(proposal)
         x = unlist(node)
       else
-        x = proposal[key]
+        x = copy(proposal[key])
       end
       xAsInt = [Int(val) for val in x]
       sup = emptysup = range(1,0)'
@@ -167,7 +167,7 @@ function DGS(params::ElementOrVector{Symbol}, returnLogp = false)
     end
 
     #logptot <= 0 ||
-    println( "samplerfx logp $(logptot)")
+    logptot <= 0 || println( "samplerfx logp $(logptot)")
     logptot
   end
   if returnLogp

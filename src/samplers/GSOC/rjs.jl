@@ -188,7 +188,8 @@ function RJS(dpparam::Symbol, themodel::AbstractModel, groupNumParam::Symbol, sp
     splitIndicator = rand()<splitprob
 
     if splitIndicator
-
+      #
+      #println( "$logA $(length(groups)) split base ")
       #choose group to split
       k = sample(oldweights)
 
@@ -225,6 +226,8 @@ function RJS(dpparam::Symbol, themodel::AbstractModel, groupNumParam::Symbol, sp
                 proposal, [(aparam,) for aparam in musigfrom],
                 newweights
                 )#TODO: tune
+        #
+        #println( "$logA $(length(groups)) split params ")
       end
 
       itemsToAssign = [i for i in 1:length(cur[dpparam].value) if cur[dpparam,i]==k]
@@ -240,22 +243,27 @@ function RJS(dpparam::Symbol, themodel::AbstractModel, groupNumParam::Symbol, sp
       for aparam in allRelevantParams
         logA -= logpdf(model, [aparam])
       end
+      #println( "$logA $(length(groups)) split old fit ")
 
       relist!(model, proposal)
       update!(model, allRelevantParams)
-      #assign elems to newly-specified groups and adjust acceptance prob
-      logA -= assigner!(model,block,proposal, #the higher the probability that we'd propose this split, the lower prob we should accept.
-          [k,j], newweights,
-          itemsToAssign,
-          i -> i)
 
       #account for priors/hyperparameters on params
       for aparam in allRelevantParams
         logA += logpdf(model, [aparam])
       end
+      #println( "$logA $(length(groups)) split new fit ")
+      #assign elems to newly-specified groups and adjust acceptance prob
+      logA -= assigner!(model,block,proposal, #the higher the probability that we'd propose this split, the lower prob we should accept.
+          [k,j], newweights,
+          itemsToAssign,
+          i -> i)
+      #
+      #println( "$logA $(length(groups)) split assignment ")
 
     else
       #merge
+      #println( "$logA $(length(groups)) merge base ")
 
       #choose group to merge to (by weight)
       k = sample(oldweights)
@@ -277,11 +285,13 @@ function RJS(dpparam::Symbol, themodel::AbstractModel, groupNumParam::Symbol, sp
                   proposal, [(aparam,) for aparam in musigfrom],
                   newweights) #TODO: tune
         end
+        #println( "$logA $(length(groups)) merge params ")
 
         #move elems to newly-specified group and adjust acceptance prob
         itemsToAssign = [i for i in 1:length(cur[dpparam].value) if cur[dpparam,i] in [j,k]]
         for i in itemsToAssign
           proposal[dpparam,i] = Float64(k)
+          #print( " ... $i $(proposal[dpparam,i]) $(cur[dpparam,i]) ")
         end
 
         relist!(model, cur) #redundant??
@@ -290,10 +300,13 @@ function RJS(dpparam::Symbol, themodel::AbstractModel, groupNumParam::Symbol, sp
             [k,j], oldweights,
             itemsToAssign,
             i -> i)#the higher the probability that we'd propose this split, the higher prob we should accept the merge.
+        #
+        #println( "$logA $(length(groups)) merge assign ")
         for aparam in allRelevantParams
           #account for priors/hyperparameters on params
           logA += logpdf(model, [aparam])
         end
+        #println( "$logA $(length(groups)) merge 2 fit ")
 
 
         relist!(model, proposal)
@@ -307,6 +320,7 @@ function RJS(dpparam::Symbol, themodel::AbstractModel, groupNumParam::Symbol, sp
           #account for priors/hyperparameters on params
           logA -= logpdf(model, [aparam])
         end
+        #println( "$logA $(length(groups)) merge 1 fit ")
 
         #relist!(model, proposal)
         #logA += logpdf(model,block) #double-counting, after above
